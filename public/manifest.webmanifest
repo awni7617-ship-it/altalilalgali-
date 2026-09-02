@@ -1,0 +1,18 @@
+{
+  "name": "Rescue — save food, save money",
+  "short_name": "Rescue",
+  "description": "Rescue unsold food from shops near you at a fraction of the price.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F1F3EE",
+  "theme_color": "#00594A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
