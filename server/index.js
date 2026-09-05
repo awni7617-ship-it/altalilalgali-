@@ -1,7 +1,11 @@
 import http from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { config } from './config.js';
 import { getSettings } from './db.js';
-import { SESSION_COOKIE, getSessionUser } from './auth.js';
+import {
+  SESSION_COOKIE, getSessionUser, findUserByEmail, createUser,
+  setPassword, verifyPassword, checkPasswordStrength,
+} from './auth.js';
 import {
   Router,
   HttpError,
@@ -105,6 +109,54 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+/**
+ * Make sure the owner can always get in.
+ *
+ * The account is created on first start. If no password was chosen in
+ * .env, a strong one is generated and printed once — so a fresh shop is
+ * never reachable with a password someone could guess from the source.
+ * Returns the generated password, or '' when one was already set.
+ */
+async function ensureOwnerAccount() {
+  const email = config.adminEmails[0];
+  if (!email) return '';
+
+  let chosen = config.adminPassword;
+  if (chosen) {
+    const weak = checkPasswordStrength(chosen);
+    if (weak) {
+      console.warn(`  ⚠  ADMIN_PASSWORD was ignored — ${weak}`);
+      chosen = '';
+    }
+  }
+
+  const existing = findUserByEmail(email);
+
+  if (!existing) {
+    const password = chosen || randomBytes(9).toString('base64url');
+    await createUser({ email, password });
+    return chosen ? '' : password;
+  }
+
+  if (chosen) {
+    /* Keep the account in step with .env, without rehashing on every
+     * start when nothing changed. */
+    if (!(await verifyPassword(chosen, existing.password_hash))) {
+      await setPassword(existing.id, chosen);
+    }
+    return '';
+  }
+
+  if (!existing.password_hash) {
+    const password = randomBytes(9).toString('base64url');
+    await setPassword(existing.id, password);
+    return password;
+  }
+  return '';
+}
+
+const generatedPassword = await ensureOwnerAccount();
+
 server.listen(config.port, () => {
   const settings = getSettings();
   const line = (label, value) => `  ${label.padEnd(13)} ${value}`;
@@ -117,22 +169,25 @@ server.listen(config.port, () => {
 ${line('Storefront', config.publicUrl)}
 ${line('Admin', `${config.publicUrl}/admin`)}
 ${line('Owner', config.adminEmails.join(', '))}
-${line('Mail', config.mail.provider === 'console'
-    ? 'console  ← codes are printed here, not e-mailed'
-    : `${config.mail.provider} (${config.mail.from})`)}
 ${line('Database', config.dbFile)}
 `);
 
+  if (generatedPassword) {
+    console.log(
+      `  ┌${'─'.repeat(52)}┐\n` +
+        `  │  YOUR OWNER PASSWORD — shown this one time only    │\n` +
+        `  │${' '.repeat(52)}│\n` +
+        `  │  ${config.adminEmails[0].padEnd(50)}│\n` +
+        `  │  ${generatedPassword.padEnd(50)}│\n` +
+        `  │${' '.repeat(52)}│\n` +
+        `  │  Write it down, then change it from Settings.      │\n` +
+        `  └${'─'.repeat(52)}┘\n`,
+    );
+  }
   if (config.secretIsEphemeral) {
     console.warn(
       '  ⚠  SECRET_KEY is not set — everyone will be signed out on restart.\n' +
-        '     Generate one:  node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"\n',
-    );
-  }
-  if (config.isProduction && config.mail.provider === 'console') {
-    console.warn(
-      '  ⚠  MAIL_PROVIDER=console — login codes are NOT being e-mailed.\n' +
-        '     Set MAIL_PROVIDER in .env before opening the shop to customers.\n',
+        '     Generate one with:  npm run secret\n',
     );
   }
 });

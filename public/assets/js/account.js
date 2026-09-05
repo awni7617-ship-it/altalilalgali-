@@ -11,6 +11,12 @@ const T = {
     title: 'حسابي', shop: 'المتجر', logout: 'خروج', details: 'بياناتي',
     name: 'الاسم الكامل', phone: 'رقم الهاتف', city: 'المدينة', choose_city: 'اختاري المدينة',
     address: 'العنوان', save: 'حفظ البيانات', saved: 'تم حفظ بياناتك',
+    security: 'كلمة المرور', current_pw: 'كلمة المرور الحالية',
+    new_pw: 'كلمة المرور الجديدة', repeat_pw: 'تأكيد كلمة المرور الجديدة',
+    change_pw: 'تغيير كلمة المرور', pw_changed: 'تم تغيير كلمة المرور',
+    pw_short: 'كلمة المرور يجب أن تكون ٨ أحرف على الأقل',
+    pw_mismatch: 'كلمتا المرور غير متطابقتين',
+    pw_note: 'عند التغيير سيتم تسجيل الخروج من باقي الأجهزة.',
     orders: 'طلباتي', no_orders: 'لم تقومي بأي طلب بعد',
     no_orders_sub: 'تصفّحي المتجر وابدئي التسوق', browse: 'تصفّحي المتجر',
     order_no: 'رقم الطلب', total: 'الإجمالي', items: 'المنتجات', admin_area: 'لوحة التحكم',
@@ -21,6 +27,12 @@ const T = {
     title: 'My account', shop: 'Shop', logout: 'Sign out', details: 'My details',
     name: 'Full name', phone: 'Phone number', city: 'City', choose_city: 'Choose your city',
     address: 'Address', save: 'Save details', saved: 'Your details were saved',
+    security: 'Password', current_pw: 'Current password',
+    new_pw: 'New password', repeat_pw: 'Confirm new password',
+    change_pw: 'Change password', pw_changed: 'Your password was changed',
+    pw_short: 'Your password needs at least 8 characters',
+    pw_mismatch: 'Those two passwords are not the same',
+    pw_note: 'Changing it signs you out of your other devices.',
     orders: 'My orders', no_orders: 'You have not ordered yet',
     no_orders_sub: 'Browse the shop and start shopping', browse: 'Browse the shop',
     order_no: 'Order', total: 'Total', items: 'Items', admin_area: 'Dashboard',
@@ -98,6 +110,21 @@ async function boot() {
     </div>
 
     <div class="section-card">
+      <h3>${s('security')}</h3>
+      <form id="passwordForm" style="margin-top:14px;max-width:420px;">
+        <div class="field"><label for="cpCurrent">${s('current_pw')}</label>
+          <input class="input" type="password" id="cpCurrent" dir="ltr" autocomplete="current-password"></div>
+        <div class="field"><label for="cpNew">${s('new_pw')}</label>
+          <input class="input" type="password" id="cpNew" dir="ltr" autocomplete="new-password"></div>
+        <div class="field"><label for="cpRepeat">${s('repeat_pw')}</label>
+          <input class="input" type="password" id="cpRepeat" dir="ltr" autocomplete="new-password"></div>
+        <p class="error-text" id="cpError" hidden></p>
+        <p class="hint">${s('pw_note')}</p>
+        <button class="btn" id="cpSubmit" type="submit" style="margin-top:10px;">${s('change_pw')}</button>
+      </form>
+    </div>
+
+    <div class="section-card">
       <h3>${s('orders')} ${orders.length ? `(${orders.length})` : ''}</h3>
       <div style="margin-top:14px;">
         ${orders.length === 0
@@ -107,6 +134,43 @@ async function boot() {
           : orders.map(orderCard).join('')}
       </div>
     </div>`;
+
+  $('#passwordForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const box = $('#cpError');
+    const current = $('#cpCurrent');
+    const next = $('#cpNew');
+    const repeat = $('#cpRepeat');
+    box.hidden = true;
+    [current, next, repeat].forEach((i) => i.classList.remove('is-error'));
+
+    const bad = (input, message) => {
+      box.hidden = false;
+      box.textContent = message;
+      input.classList.add('is-error');
+      input.focus();
+    };
+    if (!current.value) return bad(current, s('current_pw'));
+    if (next.value.length < 8) return bad(next, s('pw_short'));
+    if (next.value !== repeat.value) return bad(repeat, s('pw_mismatch'));
+
+    const button = $('#cpSubmit');
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span>';
+    try {
+      await api.post('/api/auth/change-password', {
+        current_password: current.value,
+        new_password: next.value,
+      });
+      toast(s('pw_changed'), 'ok');
+      $('#passwordForm').reset();
+    } catch (err) {
+      bad(current, err.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = s('change_pw');
+    }
+  });
 
   $('#profileForm').addEventListener('submit', async (event) => {
     event.preventDefault();

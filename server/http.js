@@ -158,7 +158,11 @@ export function clientIp(req) {
  * ------------------------------------------------------------------ */
 const buckets = new Map();
 
-export function rateLimit(key, limit, windowMs) {
+export function rateLimit(key, limit, windowMs, { reset = false, peek = false } = {}) {
+  if (reset) {
+    buckets.delete(key);
+    return { allowed: true, remaining: limit };
+  }
   const now = Date.now();
   const hits = (buckets.get(key) || []).filter((t) => now - t < windowMs);
   if (hits.length >= limit) {
@@ -166,7 +170,7 @@ export function rateLimit(key, limit, windowMs) {
     const retryAfter = Math.ceil((windowMs - (now - hits[0])) / 1000);
     return { allowed: false, retryAfter };
   }
-  hits.push(now);
+  if (!peek) hits.push(now);
   buckets.set(key, hits);
   return { allowed: true, remaining: limit - hits.length };
 }

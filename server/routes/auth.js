@@ -1,92 +1,66 @@
-import { config, isAdminEmail } from '../config.js';
-import { db, getSetting } from '../db.js';
-import { sendMail, loginCodeEmail } from '../mailer.js';
+import { config } from '../config.js';
+import { db } from '../db.js';
 import {
   SESSION_COOKIE,
   normalizeEmail,
   assertValidEmail,
-  issueLoginCode,
-  verifyLoginCode,
+  createUser,
+  authenticate,
+  setPassword,
+  verifyPassword,
+  findUserByEmail,
   createSession,
   destroySession,
   destroyAllSessions,
   publicUser,
   requireUser,
 } from '../auth.js';
-import { readJson, sendJson, setCookie, clearCookie, clientIp, rateLimit, tooMany, badRequest } from '../http.js';
+import {
+  readJson, sendJson, setCookie, clearCookie, clientIp, rateLimit, tooMany, badRequest, unauthorized,
+} from '../http.js';
 
 export function registerAuthRoutes(router) {
   /* ---------------------------------------------------------------- *
-   * Step 1 — ask for a code
+   * Create an account
    * ---------------------------------------------------------------- */
-  router.post('/api/auth/request-code', async (req, res, ctx) => {
+  router.post('/api/auth/register', async (req, res, ctx) => {
     const ip = clientIp(req);
-    const perIp = rateLimit(`code:ip:${ip}`, 12, 3_600_000);
-    if (!perIp.allowed) {
-      throw tooMany('Too many requests from this device. Please try again later.', perIp.retryAfter);
+    const limited = rateLimit(`register:${ip}`, 10, 3_600_000);
+    if (!limited.allowed) {
+      throw tooMany('Too many accounts created from this device. Please try again later.', limited.retryAfter);
     }
 
     const body = await readJson(req);
     const email = normalizeEmail(body.email);
     assertValidEmail(email);
 
-    const code = issueLoginCode(email, ip);
-    const minutes = Math.round(config.auth.codeTtlMs / 60_000);
-    const shopName = getSetting('shop_name_ar') || 'Al-Talil Al-Ghali';
-    const admin = isAdminEmail(email);
-    const { html, text } = loginCodeEmail({ code, shopName, minutes, isAdmin: admin });
-
-    let delivery = { delivered: false, provider: config.mail.provider };
-    try {
-      delivery = await sendMail({
-        to: email,
-        subject: `${code} — رمز الدخول · your sign-in code`,
-        html,
-        text,
-      });
-    } catch (err) {
-      console.error('[mail] delivery failed:', err.message);
-      /* The code exists either way. Say so honestly rather than
-       * pretending the mail was sent. */
-      return sendJson(res, 502, {
-        ok: false,
-        error: 'The code could not be e-mailed. Please check the mail settings and try again.',
-        code: 'mail_failed',
-        detail: config.isProduction ? undefined : err.message,
-      });
-    }
-
-    sendJson(res, 200, {
-      ok: true,
+    const user = await createUser({
       email,
-      is_admin: admin,
-      expires_in_minutes: minutes,
-      delivered: delivery.delivered,
-      /* Only when no mail provider is configured, so the owner can
-       * still get in while setting the shop up. Never in production
-       * with a real provider. */
-      dev_code: delivery.provider === 'console' ? code : undefined,
-      message: delivery.delivered
-        ? 'We sent a sign-in code to your e-mail.'
-        : 'Mail is not configured yet — the code is shown here and printed in the server log.',
+      password: body.password,
+      name: body.name,
+      phone: body.phone,
     });
+
+    const token = createSession(user.id, { ip, userAgent: req.headers['user-agent'] || '' });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+    sendJson(res, 201, { ok: true, user: publicUser(user) });
   });
 
   /* ---------------------------------------------------------------- *
-   * Step 2 — exchange the code for a session
+   * Sign in
    * ---------------------------------------------------------------- */
-  router.post('/api/auth/verify', async (req, res, ctx) => {
+  router.post('/api/auth/login', async (req, res, ctx) => {
     const ip = clientIp(req);
-    const perIp = rateLimit(`verify:ip:${ip}`, 30, 900_000);
-    if (!perIp.allowed) {
-      throw tooMany('Too many attempts from this device. Please wait a few minutes.', perIp.retryAfter);
+    const limited = rateLimit(`login:ip:${ip}`, 40, 900_000);
+    if (!limited.allowed) {
+      throw tooMany('Too many sign-in attempts from this device. Please wait a few minutes.', limited.retryAfter);
     }
 
     const body = await readJson(req);
     const email = normalizeEmail(body.email);
     assertValidEmail(email);
 
-    const user = verifyLoginCode(email, body.code);
+    const user = await authenticate(email, String(body.password ?? ''), ip);
     const token = createSession(user.id, { ip, userAgent: req.headers['user-agent'] || '' });
 
     setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
@@ -104,6 +78,38 @@ export function registerAuthRoutes(router) {
     destroySession(ctx.token);
     clearCookie(res, SESSION_COOKIE);
     sendJson(res, 200, { ok: true });
+  });
+
+  /* ---------------------------------------------------------------- *
+   * Change password
+   *
+   * The current password is required, so someone who walks up to an
+   * unlocked browser still cannot lock the owner out of their shop.
+   * ---------------------------------------------------------------- */
+  router.post('/api/auth/change-password', async (req, res, ctx) => {
+    const user = requireUser(ctx);
+    const body = await readJson(req);
+
+    const current = String(body.current_password ?? '');
+    const next = String(body.new_password ?? '');
+
+    const fresh = findUserByEmail(user.email);
+    if (!(await verifyPassword(current, fresh.password_hash))) {
+      throw unauthorized('Your current password is not correct.');
+    }
+    if (current === next) throw badRequest('Please choose a different password.', 'same_password');
+
+    await setPassword(user.id, next);
+
+    /* Every other device is signed out; this one gets a fresh session. */
+    destroyAllSessions(user.id);
+    const token = createSession(user.id, {
+      ip: clientIp(req),
+      userAgent: req.headers['user-agent'] || '',
+    });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+
+    sendJson(res, 200, { ok: true, message: 'Your password was changed. Other devices were signed out.' });
   });
 
   router.post('/api/auth/logout-everywhere', async (req, res, ctx) => {
@@ -128,8 +134,7 @@ export function registerAuthRoutes(router) {
       text(body.address ?? user.address, 250),
       user.id,
     );
-    const fresh = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
-    sendJson(res, 200, { ok: true, user: publicUser(fresh) });
+    sendJson(res, 200, { ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id = ?').get(user.id)) });
   });
 
   router.get('/api/auth/orders', async (req, res, ctx) => {

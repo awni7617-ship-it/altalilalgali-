@@ -1,47 +1,49 @@
 /* ==================================================================
-   Passwordless sign-in: e-mail → 6-digit code → session.
+   Sign in / create an account — e-mail and password.
    ================================================================== */
 import { api, isArabic, esc, toast, $, applyLanguage } from './core.js';
 
-const CODE_LENGTH = 6;
 const text = {
   ar: {
-    sub: 'سجّلي الدخول برمز يُرسل إلى بريدك — بدون كلمة مرور',
-    email: 'البريد الإلكتروني', send: 'إرسال الرمز', sending: 'جارٍ الإرسال...',
-    verify: 'تأكيد وتسجيل الدخول', verifying: 'جارٍ التحقق...',
-    back: '← تغيير البريد', resend: 'إعادة الإرسال', resend_in: 'إعادة الإرسال بعد {n} ثانية',
-    sent: 'أرسلنا رمزاً مكوناً من ٦ أرقام إلى',
-    enter_email: 'الرجاء إدخال بريد إلكتروني صحيح',
-    enter_code: 'الرجاء إدخال الرمز كاملاً',
-    welcome_admin: 'أهلاً بعودتك! جارٍ فتح لوحة التحكم...',
+    sub: 'سجّلي الدخول للمتابعة',
+    tab_login: 'تسجيل الدخول', tab_register: 'حساب جديد',
+    email: 'البريد الإلكتروني', password: 'كلمة المرور',
+    confirm: 'تأكيد كلمة المرور', name: 'الاسم الكامل',
+    sign_in: 'دخول', create: 'إنشاء الحساب',
+    bad_email: 'الرجاء إدخال بريد إلكتروني صحيح',
+    need_password: 'الرجاء إدخال كلمة المرور',
+    short_password: 'كلمة المرور يجب أن تكون ٨ أحرف على الأقل',
+    mismatch: 'كلمتا المرور غير متطابقتين',
+    hint: '٨ أحرف على الأقل',
+    weak: 'ضعيفة', fair: 'متوسطة', good: 'جيدة', strong: 'قوية',
+    welcome_admin: 'أهلاً بعودتك! جارٍ فتح لوحة التحكم…',
     welcome: 'تم تسجيل الدخول بنجاح',
-    owner: '👑 <strong>حساب المدير:</strong> عند إدخال بريد المالك سيصلك رمز الدخول إلى لوحة التحكم مباشرة.',
-    no_mail: 'البريد غير مُفعّل بعد — هذا هو رمزك:',
+    created: 'تم إنشاء حسابك',
+    owner: '👑 <strong>حساب المدير:</strong> ادخلي ببريد المالك وكلمة مروره للوصول إلى لوحة التحكم. نسيتِ كلمة المرور؟ شغّلي <code>npm run password</code> في الطرفية.',
     back_shop: '← العودة للمتجر',
-    check_spam: 'لم يصلك الرمز؟ تحقّقي من مجلد الرسائل غير المرغوبة.',
+    show: 'إظهار كلمة المرور', hide: 'إخفاء كلمة المرور',
   },
   en: {
-    sub: 'Sign in with a code sent to your e-mail — no password needed',
-    email: 'E-mail address', send: 'Send my code', sending: 'Sending...',
-    verify: 'Verify and sign in', verifying: 'Checking...',
-    back: '← Change e-mail', resend: 'Resend code', resend_in: 'Resend in {n}s',
-    sent: 'We sent a 6-digit code to',
-    enter_email: 'Please enter a valid e-mail address',
-    enter_code: 'Please enter the whole code',
-    welcome_admin: 'Welcome back! Opening your dashboard...',
-    welcome: 'Signed in successfully',
-    owner: '👑 <strong>Owner account:</strong> sign in with the owner e-mail to go straight to the dashboard.',
-    no_mail: 'Mail is not configured yet — here is your code:',
+    sub: 'Sign in to continue',
+    tab_login: 'Sign in', tab_register: 'Create account',
+    email: 'E-mail address', password: 'Password',
+    confirm: 'Confirm password', name: 'Full name',
+    sign_in: 'Sign in', create: 'Create account',
+    bad_email: 'Please enter a valid e-mail address',
+    need_password: 'Please enter your password',
+    short_password: 'Your password needs at least 8 characters',
+    mismatch: 'Those two passwords are not the same',
+    hint: 'At least 8 characters',
+    weak: 'Weak', fair: 'Fair', good: 'Good', strong: 'Strong',
+    welcome_admin: 'Welcome back! Opening your dashboard…',
+    welcome: 'Signed in',
+    created: 'Your account is ready',
+    owner: '👑 <strong>Owner account:</strong> sign in with the owner e-mail and password to reach the dashboard. Forgotten it? Run <code>npm run password</code> in the terminal.',
     back_shop: '← Back to the shop',
-    check_spam: 'No code yet? Check your spam folder.',
+    show: 'Show password', hide: 'Hide password',
   },
 };
-
-const s = (key, vars) => {
-  let value = text[isArabic() ? 'ar' : 'en'][key] || key;
-  if (vars) for (const [k, v] of Object.entries(vars)) value = value.replaceAll(`{${k}}`, v);
-  return value;
-};
+const s = (key) => text[isArabic() ? 'ar' : 'en'][key] || key;
 
 const params = new URLSearchParams(location.search);
 const nextUrl = (() => {
@@ -50,226 +52,204 @@ const nextUrl = (() => {
   return /^\/[A-Za-z0-9._~\-/]*$/.test(raw) ? raw : '';
 })();
 
-let email = '';
-let resendTimer = null;
-
 applyLanguage();
-paintStaticText();
-buildOtpBoxes();
-redirectIfAlreadySignedIn();
+paintText();
+wireTabs();
+wireEyes();
+wireMeter();
+redirectIfSignedIn();
 
-function paintStaticText() {
+function paintText() {
   $('#authSub').textContent = s('sub');
-  $('#emailLabel').textContent = s('email');
-  $('#sendBtn').textContent = s('send');
-  $('#verifyBtn').textContent = s('verify');
-  $('#backBtn').textContent = s('back');
-  $('#resendBtn').textContent = s('resend');
+  $('#tabLogin').textContent = s('tab_login');
+  $('#tabRegister').textContent = s('tab_register');
+  $('#loginBtn').textContent = s('sign_in');
+  $('#registerBtn').textContent = s('create');
+  $('#pwHint').textContent = s('hint');
   $('#ownerHint').innerHTML = s('owner');
   $('#backShop').textContent = s('back_shop');
+
+  document.querySelector('label[for="loginEmail"]').textContent = s('email');
+  document.querySelector('label[for="loginPassword"]').textContent = s('password');
+  document.querySelector('label[for="regName"]').textContent = s('name');
+  document.querySelector('label[for="regEmail"]').textContent = s('email');
+  document.querySelector('label[for="regPassword"]').textContent = s('password');
+  document.querySelector('label[for="regPassword2"]').textContent = s('confirm');
 }
 
-async function redirectIfAlreadySignedIn() {
+/**
+ * Where to send someone once they are signed in.
+ *
+ * `next` is only honoured if they can actually go there. Sending a
+ * customer on to /admin would bounce them straight back here, and the
+ * two redirects would chase each other forever.
+ */
+function destinationFor(user) {
+  const wantsAdmin = /^\/admin(\.html)?(\/|$|\?)/.test(nextUrl);
+  if (nextUrl && !(wantsAdmin && !user.is_admin)) return nextUrl;
+  return user.is_admin ? '/admin.html' : '/account.html';
+}
+
+async function redirectIfSignedIn() {
   try {
     const { user } = await api.get('/api/auth/me');
-    if (user) location.replace(nextUrl || (user.is_admin ? '/admin.html' : '/account.html'));
+    if (user) location.replace(destinationFor(user));
   } catch { /* not signed in — stay here */ }
 }
 
 /* ------------------------------------------------------------------ *
- * Step 1 — request the code
+ * Tabs
  * ------------------------------------------------------------------ */
-$('#emailStep').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const input = $('#email');
-  const errorBox = $('#emailError');
-  const value = input.value.trim().toLowerCase();
+function wireTabs() {
+  const show = (which) => {
+    const login = which === 'login';
+    $('#loginForm').hidden = !login;
+    $('#registerForm').hidden = login;
+    $('#tabLogin').classList.toggle('is-active', login);
+    $('#tabRegister').classList.toggle('is-active', !login);
+    $('#tabLogin').setAttribute('aria-selected', String(login));
+    $('#tabRegister').setAttribute('aria-selected', String(!login));
+    $('#loginError').hidden = true;
+    $('#registerError').hidden = true;
+    (login ? $('#loginEmail') : $('#regName')).focus();
+  };
+  $('#tabLogin').addEventListener('click', () => show('login'));
+  $('#tabRegister').addEventListener('click', () => show('register'));
+  if (params.get('new') === '1') show('register');
+}
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+/* ------------------------------------------------------------------ *
+ * Show / hide password
+ * ------------------------------------------------------------------ */
+function wireEyes() {
+  document.querySelectorAll('[data-eye]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.eye);
+      const revealed = input.type === 'text';
+      input.type = revealed ? 'password' : 'text';
+      button.textContent = revealed ? '👁' : '🙈';
+      button.setAttribute('aria-label', revealed ? s('show') : s('hide'));
+      input.focus();
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Strength meter — guidance only; the server sets the real rule.
+ * ------------------------------------------------------------------ */
+function wireMeter() {
+  const input = $('#regPassword');
+  const meter = $('#pwMeter');
+  const bar = meter.querySelector('span');
+  const hint = $('#pwHint');
+
+  input.addEventListener('input', () => {
+    const value = input.value;
+    if (!value) {
+      meter.hidden = true;
+      hint.textContent = s('hint');
+      return;
+    }
+    meter.hidden = false;
+
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (value.length >= 12) score += 1;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 1;
+    if (/\d/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value)) score += 1;
+    const level = Math.min(4, Math.max(1, score));
+
+    meter.dataset.level = String(level);
+    bar.style.width = `${level * 25}%`;
+    hint.textContent = [s('weak'), s('fair'), s('good'), s('strong')][level - 1];
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Submitting
+ * ------------------------------------------------------------------ */
+const emailLooksValid = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+function fail(box, input, message) {
+  box.hidden = false;
+  box.textContent = message;
+  if (input) {
     input.classList.add('is-error');
-    errorBox.hidden = false;
-    errorBox.textContent = s('enter_email');
     input.focus();
-    return;
   }
-  input.classList.remove('is-error');
-  errorBox.hidden = true;
-  await requestCode(value, $('#sendBtn'));
-});
+  return false;
+}
 
-async function requestCode(value, button) {
-  const original = button.textContent;
+async function submitting(button, run) {
+  const label = button.textContent;
   button.disabled = true;
   button.innerHTML = '<span class="spinner"></span>';
-
   try {
-    const result = await api.post('/api/auth/request-code', { email: value });
-    email = result.email;
-
-    $('#emailStep').hidden = true;
-    $('#codeStep').hidden = false;
-    $('#sentTo').innerHTML = `${esc(s('sent'))}<strong>${esc(email)}</strong>`;
-
-    /* Shown only while no mail provider is configured, so the shop is
-     * usable during setup. */
-    $('#devCodeBox').innerHTML = result.dev_code
-      ? `<div class="dev-code">${esc(s('no_mail'))}<b>${esc(result.dev_code)}</b></div>`
-      : `<p class="hint" style="text-align:center;margin-top:12px;">${esc(s('check_spam'))}</p>`;
-
-    if (result.dev_code) fillCode(result.dev_code);
-    else $('#otpInputs').querySelector('input')?.focus();
-
-    startResendCountdown();
-  } catch (err) {
-    toast(err.message, 'bad');
-    const errorBox = $('#emailError');
-    errorBox.hidden = false;
-    errorBox.textContent = err.message;
+    await run();
   } finally {
     button.disabled = false;
-    button.textContent = original;
+    button.textContent = label;
   }
 }
 
-/* ------------------------------------------------------------------ *
- * The six code boxes
- * ------------------------------------------------------------------ */
-function buildOtpBoxes() {
-  const host = $('#otpInputs');
-  host.innerHTML = Array.from({ length: CODE_LENGTH })
-    .map(
-      (_, i) => `<input class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*"
-        maxlength="1" autocomplete="${i === 0 ? 'one-time-code' : 'off'}"
-        aria-label="Digit ${i + 1}" data-index="${i}">`,
-    )
-    .join('');
-
-  const boxes = Array.from(host.querySelectorAll('.otp-input'));
-
-  boxes.forEach((box, index) => {
-    box.addEventListener('input', () => {
-      box.value = box.value.replace(/\D/g, '').slice(0, 1);
-      box.classList.toggle('is-filled', box.value !== '');
-      if (box.value && index < CODE_LENGTH - 1) boxes[index + 1].focus();
-      if (boxes.every((b) => b.value)) $('#codeStep').requestSubmit();
-    });
-
-    box.addEventListener('keydown', (event) => {
-      if (event.key === 'Backspace' && !box.value && index > 0) {
-        boxes[index - 1].focus();
-        boxes[index - 1].value = '';
-        boxes[index - 1].classList.remove('is-filled');
-        event.preventDefault();
-      }
-      /* The boxes read left-to-right in both languages. */
-      if (event.key === 'ArrowLeft' && index > 0) boxes[index - 1].focus();
-      if (event.key === 'ArrowRight' && index < CODE_LENGTH - 1) boxes[index + 1].focus();
-    });
-
-    box.addEventListener('paste', (event) => {
-      event.preventDefault();
-      const digits = (event.clipboardData.getData('text') || '').replace(/\D/g, '');
-      if (digits) fillCode(digits);
-    });
-
-    box.addEventListener('focus', () => box.select());
-  });
+function land(user) {
+  toast(user.is_admin ? s('welcome_admin') : s('welcome'), 'ok');
+  setTimeout(() => location.replace(destinationFor(user)), 450);
 }
 
-function fillCode(digits) {
-  const boxes = Array.from($('#otpInputs').querySelectorAll('.otp-input'));
-  boxes.forEach((box, i) => {
-    box.value = digits[i] || '';
-    box.classList.toggle('is-filled', !!digits[i]);
-  });
-  if (digits.length >= CODE_LENGTH) {
-    boxes[CODE_LENGTH - 1].focus();
-    $('#codeStep').requestSubmit();
-  } else {
-    boxes[Math.min(digits.length, CODE_LENGTH - 1)].focus();
-  }
-}
-
-function readCode() {
-  return Array.from($('#otpInputs').querySelectorAll('.otp-input'))
-    .map((b) => b.value)
-    .join('');
-}
-
-/* ------------------------------------------------------------------ *
- * Step 2 — verify
- * ------------------------------------------------------------------ */
-let verifying = false;
-
-$('#codeStep').addEventListener('submit', async (event) => {
+$('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (verifying) return;
+  const email = $('#loginEmail');
+  const password = $('#loginPassword');
+  const box = $('#loginError');
+  box.hidden = true;
+  email.classList.remove('is-error');
+  password.classList.remove('is-error');
 
-  const code = readCode();
-  const errorBox = $('#codeError');
-  const button = $('#verifyBtn');
+  if (!emailLooksValid(email.value.trim())) return fail(box, email, s('bad_email'));
+  if (!password.value) return fail(box, password, s('need_password'));
 
-  if (code.length !== CODE_LENGTH) {
-    errorBox.hidden = false;
-    errorBox.textContent = s('enter_code');
-    return;
-  }
-
-  verifying = true;
-  errorBox.hidden = true;
-  button.disabled = true;
-  button.innerHTML = '<span class="spinner"></span>';
-
-  try {
-    const { user } = await api.post('/api/auth/verify', { email, code });
-    toast(user.is_admin ? s('welcome_admin') : s('welcome'), 'ok');
-    setTimeout(() => {
-      location.replace(nextUrl || (user.is_admin ? '/admin.html' : '/account.html'));
-    }, 500);
-  } catch (err) {
-    errorBox.hidden = false;
-    errorBox.textContent = err.message;
-    fillCode('');
-    $('#otpInputs').querySelector('input').focus();
-    verifying = false;
-    button.disabled = false;
-    button.textContent = s('verify');
-  }
-});
-
-/* ------------------------------------------------------------------ *
- * Resend / go back
- * ------------------------------------------------------------------ */
-function startResendCountdown(seconds = 45) {
-  const button = $('#resendBtn');
-  clearInterval(resendTimer);
-  let left = seconds;
-  button.disabled = true;
-  button.textContent = s('resend_in', { n: left });
-
-  resendTimer = setInterval(() => {
-    left -= 1;
-    if (left <= 0) {
-      clearInterval(resendTimer);
-      button.disabled = false;
-      button.textContent = s('resend');
-    } else {
-      button.textContent = s('resend_in', { n: left });
+  await submitting($('#loginBtn'), async () => {
+    try {
+      const { user } = await api.post('/api/auth/login', {
+        email: email.value.trim(),
+        password: password.value,
+      });
+      land(user);
+    } catch (err) {
+      fail(box, password, err.message);
+      password.value = '';
     }
-  }, 1000);
-}
-
-$('#resendBtn').addEventListener('click', () => {
-  if (email) requestCode(email, $('#resendBtn'));
+  });
 });
 
-$('#backBtn').addEventListener('click', () => {
-  clearInterval(resendTimer);
-  $('#codeStep').hidden = true;
-  $('#emailStep').hidden = false;
-  $('#codeError').hidden = true;
-  fillCode('');
-  $('#email').focus();
+$('#registerForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = $('#regEmail');
+  const password = $('#regPassword');
+  const repeat = $('#regPassword2');
+  const box = $('#registerError');
+  box.hidden = true;
+  [email, password, repeat].forEach((i) => i.classList.remove('is-error'));
+
+  if (!emailLooksValid(email.value.trim())) return fail(box, email, s('bad_email'));
+  if (password.value.length < 8) return fail(box, password, s('short_password'));
+  if (password.value !== repeat.value) return fail(box, repeat, s('mismatch'));
+
+  await submitting($('#registerBtn'), async () => {
+    try {
+      const { user } = await api.post('/api/auth/register', {
+        email: email.value.trim(),
+        password: password.value,
+        name: $('#regName').value.trim(),
+      });
+      toast(s('created'), 'ok');
+      land(user);
+    } catch (err) {
+      fail(box, email, err.message);
+    }
+  });
 });
 
 /* Show the shop's real name once it is known. */

@@ -39,6 +39,10 @@ const T = {
     contact: 'تواصل', email: 'البريد', phone: 'الهاتف', city: 'المدينة',
     joined: 'تاريخ الانضمام', spent: 'إجمالي الشراء', order_count: 'الطلبات',
     block: 'حظر', unblock: 'إلغاء الحظر', blocked: 'محظور', owner: 'مدير',
+    reset_pw: 'كلمة مرور جديدة',
+    confirm_reset: 'إنشاء كلمة مرور مؤقتة لـ {name}؟ سيتم تسجيل خروجه من كل الأجهزة.',
+    temp_pw: 'كلمة المرور المؤقتة لـ {name}',
+    temp_pw_note: 'أرسليها للزبون، ويمكنه تغييرها من صفحة حسابه.',
     no_customers: 'لا يوجد زبائن بعد', customer_updated: 'تم تحديث الزبون',
     shop_identity: 'هوية المتجر', shop_name_ar: 'اسم المتجر بالعربية',
     shop_name_en: 'اسم المتجر بالإنجليزية', tagline_ar: 'الوصف بالعربية',
@@ -84,6 +88,10 @@ const T = {
     contact: 'Contact', email: 'E-mail', phone: 'Phone', city: 'City',
     joined: 'Joined', spent: 'Total spent', order_count: 'Orders',
     block: 'Block', unblock: 'Unblock', blocked: 'Blocked', owner: 'Owner',
+    reset_pw: 'New password',
+    confirm_reset: 'Create a temporary password for {name}? They will be signed out everywhere.',
+    temp_pw: 'Temporary password for {name}',
+    temp_pw_note: 'Send it to the customer — they can change it from their account page.',
     no_customers: 'No customers yet', customer_updated: 'Customer updated',
     shop_identity: 'Shop identity', shop_name_ar: 'Shop name (Arabic)',
     shop_name_en: 'Shop name (English)', tagline_ar: 'Tagline (Arabic)',
@@ -906,12 +914,25 @@ async function showCustomers() {
             <td>${money(c.spent)}</td>
             <td class="row-sub">${esc(formatDate(c.created_at))}</td>
             <td><div class="cell-actions">
-              ${c.is_admin ? '' : `<button class="btn btn-ghost btn-sm" type="button"
+              ${c.is_admin ? '' : `
+                <button class="btn btn-soft btn-sm" type="button"
+                  data-reset="${c.id}" data-email="${esc(c.email)}">${s('reset_pw')}</button>
+                <button class="btn btn-ghost btn-sm" type="button"
                  data-block="${c.id}" data-blocked="${c.is_blocked ? '1' : '0'}"
                  style="color:${c.is_blocked ? 'var(--ok)' : 'var(--bad)'}">
                  ${c.is_blocked ? s('unblock') : s('block')}</button>`}
             </div></td></tr>`).join('')}</tbody>
         </table></div>`}`;
+
+  main.querySelectorAll('[data-reset]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const who = b.dataset.email;
+      if (!confirm(s('confirm_reset', { name: who }))) return;
+      try {
+        const result = await api.post(`/api/admin/customers/${b.dataset.reset}/password`);
+        showTemporaryPassword(who, result.temporary_password);
+      } catch (err) { toast(err.message, 'bad'); }
+    }));
 
   main.querySelectorAll('[data-block]').forEach((b) =>
     b.addEventListener('click', async () => {
@@ -923,6 +944,39 @@ async function showCustomers() {
         showCustomers();
       } catch (err) { toast(err.message, 'bad'); }
     }));
+}
+
+function showTemporaryPassword(email, password) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:440px;" role="dialog" aria-modal="true">
+      <div class="modal-head"><h2>${s('reset_pw')}</h2>
+        <button class="icon-btn" data-close type="button">✕</button></div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="color:var(--ink-soft);">${esc(s('temp_pw', { name: email }))}</p>
+        <div class="sent-to" style="margin:16px 0;">
+          <strong style="font-size:20px;font-family:'SF Mono',Menlo,Consolas,monospace;
+                         letter-spacing:1px;direction:ltr;">${esc(password)}</strong>
+        </div>
+        <p class="hint">${s('temp_pw_note')}</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" data-close type="button">${s('cancel')}</button>
+        <button class="btn" id="copyPw" type="button">📋</button>
+      </div>
+    </div>`;
+  const close = openOverlay(overlay);
+  overlay.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', close));
+  overlay.querySelector('#copyPw').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      toast('✓', 'ok');
+    } catch {
+      /* Clipboard access can be refused; the password is on screen anyway. */
+      toast(password);
+    }
+  });
 }
 
 /* ------------------------------------------------------------------ *

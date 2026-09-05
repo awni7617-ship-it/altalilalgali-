@@ -11,6 +11,7 @@ db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   email         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT    NOT NULL DEFAULT '',
   name          TEXT    NOT NULL DEFAULT '',
   phone         TEXT    NOT NULL DEFAULT '',
   city          TEXT    NOT NULL DEFAULT '',
@@ -20,18 +21,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
   last_login_at TEXT
 );
-
-CREATE TABLE IF NOT EXISTS login_codes (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  email      TEXT    NOT NULL COLLATE NOCASE,
-  code_hash  TEXT    NOT NULL,
-  expires_at INTEGER NOT NULL,
-  attempts   INTEGER NOT NULL DEFAULT 0,
-  consumed   INTEGER NOT NULL DEFAULT 0,
-  ip         TEXT    NOT NULL DEFAULT '',
-  created_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_login_codes_email ON login_codes(email, created_at);
 
 CREATE TABLE IF NOT EXISTS sessions (
   id         TEXT    PRIMARY KEY,
@@ -122,6 +111,21 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 `);
+
+/* ------------------------------------------------------------------ *
+ * Migrations for shops created before a column existed.
+ * ------------------------------------------------------------------ */
+function addColumnIfMissing(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+addColumnIfMissing('users', 'password_hash', "TEXT NOT NULL DEFAULT ''");
+
+/* The shop used to sign people in with e-mailed codes. Nothing reads
+ * this table any more, so retire it rather than leave it lying about. */
+db.exec('DROP TABLE IF EXISTS login_codes');
 
 /* ------------------------------------------------------------------ *
  * Settings

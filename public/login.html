@@ -18,39 +18,68 @@
   <div class="auth-brand">
     <div class="brand-mark">💄</div>
     <h1 id="shopName">الطليل الغالي</h1>
-    <p id="authSub">سجّلي الدخول برمز يُرسل إلى بريدك — بدون كلمة مرور</p>
+    <p id="authSub">سجّلي الدخول للمتابعة</p>
   </div>
 
-  <!-- Step 1: e-mail -->
-  <form id="emailStep" novalidate>
+  <div class="tabs" role="tablist">
+    <button class="tab is-active" id="tabLogin" type="button" role="tab" aria-selected="true">تسجيل الدخول</button>
+    <button class="tab" id="tabRegister" type="button" role="tab" aria-selected="false">حساب جديد</button>
+  </div>
+
+  <!-- Sign in -->
+  <form id="loginForm" novalidate>
     <div class="field">
-      <label for="email" id="emailLabel">البريد الإلكتروني</label>
-      <input class="input" type="email" id="email" name="email" required dir="ltr"
-             autocomplete="email" inputmode="email" placeholder="name@example.com">
-      <p class="error-text" id="emailError" hidden></p>
+      <label for="loginEmail">البريد الإلكتروني</label>
+      <input class="input" type="email" id="loginEmail" dir="ltr" autocomplete="email"
+             inputmode="email" placeholder="name@example.com" required>
     </div>
-    <button class="btn btn-lg btn-block" type="submit" id="sendBtn">إرسال الرمز</button>
-    <div class="owner-hint" id="ownerHint">
-      👑 <strong>حساب المدير:</strong> عند إدخال بريد المالك سيصلك رمز الدخول إلى لوحة التحكم مباشرة.
+    <div class="field">
+      <label for="loginPassword">كلمة المرور</label>
+      <div class="pw-wrap">
+        <input class="input" type="password" id="loginPassword" dir="ltr"
+               autocomplete="current-password" required>
+        <button class="pw-eye" type="button" data-eye="loginPassword" aria-label="إظهار كلمة المرور">👁</button>
+      </div>
     </div>
+    <p class="error-text" id="loginError" hidden></p>
+    <button class="btn btn-lg btn-block" type="submit" id="loginBtn">دخول</button>
   </form>
 
-  <!-- Step 2: the code -->
-  <form id="codeStep" novalidate hidden>
-    <div class="sent-to" id="sentTo"></div>
-    <div class="otp-inputs" id="otpInputs" role="group" aria-label="Verification code"></div>
-    <p class="error-text" id="codeError" style="text-align:center;" hidden></p>
-    <div id="devCodeBox"></div>
-    <button class="btn btn-lg btn-block" type="submit" id="verifyBtn" style="margin-top:16px;">
-      تأكيد وتسجيل الدخول
-    </button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
-      <button class="link-btn" type="button" id="backBtn">← تغيير البريد</button>
-      <button class="link-btn" type="button" id="resendBtn">إعادة الإرسال</button>
+  <!-- Create an account -->
+  <form id="registerForm" novalidate hidden>
+    <div class="field">
+      <label for="regName">الاسم الكامل</label>
+      <input class="input" id="regName" maxlength="80" autocomplete="name">
     </div>
+    <div class="field">
+      <label for="regEmail">البريد الإلكتروني</label>
+      <input class="input" type="email" id="regEmail" dir="ltr" autocomplete="email"
+             inputmode="email" placeholder="name@example.com" required>
+    </div>
+    <div class="field">
+      <label for="regPassword">كلمة المرور</label>
+      <div class="pw-wrap">
+        <input class="input" type="password" id="regPassword" dir="ltr"
+               autocomplete="new-password" required>
+        <button class="pw-eye" type="button" data-eye="regPassword" aria-label="إظهار كلمة المرور">👁</button>
+      </div>
+      <div class="pw-meter" id="pwMeter" hidden><span></span></div>
+      <p class="hint" id="pwHint">٨ أحرف على الأقل</p>
+    </div>
+    <div class="field">
+      <label for="regPassword2">تأكيد كلمة المرور</label>
+      <input class="input" type="password" id="regPassword2" dir="ltr" autocomplete="new-password" required>
+    </div>
+    <p class="error-text" id="registerError" hidden></p>
+    <button class="btn btn-lg btn-block" type="submit" id="registerBtn">إنشاء الحساب</button>
   </form>
 
-  <p style="text-align:center;margin:22px 0 0;">
+  <div class="owner-hint" id="ownerHint">
+    👑 <strong>حساب المدير:</strong> ادخلي ببريد المالك وكلمة مروره للوصول إلى لوحة التحكم.
+    نسيتِ كلمة المرور؟ شغّلي <code>npm run password</code> في الطرفية.
+  </div>
+
+  <p style="text-align:center;margin:20px 0 0;">
     <a href="/" id="backShop" style="font-size:13.5px;color:var(--ink-mute);">← العودة للمتجر</a>
   </p>
 </main>

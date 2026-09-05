@@ -12,7 +12,8 @@
     "dev": "NODE_ENV=development node --disable-warning=ExperimentalWarning --watch server/index.js",
     "seed": "node --disable-warning=ExperimentalWarning server/seed.js",
     "reset": "node --disable-warning=ExperimentalWarning server/seed.js --reset",
-    "secret": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
+    "secret": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\"",
+    "password": "node --disable-warning=ExperimentalWarning server/set-password.js"
   },
   "dependencies": {}
 }

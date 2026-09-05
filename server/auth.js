@@ -1,12 +1,15 @@
-import { randomInt, randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
+import { randomBytes, scrypt, createHmac, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import { db } from './db.js';
 import { config, isAdminEmail } from './config.js';
-import { HttpError, badRequest, unauthorized, forbidden, tooMany } from './http.js';
+import { HttpError, badRequest, unauthorized, forbidden, tooMany, rateLimit } from './http.js';
+
+const scryptAsync = promisify(scrypt);
 
 export const SESSION_COOKIE = 'shop_session';
 
 /* ------------------------------------------------------------------ *
- * E-mail handling
+ * E-mail addresses
  * ------------------------------------------------------------------ */
 const EMAIL_RE = /^[^\s@,;:<>()[\]\\]+@[^\s@.,;:<>()[\]\\]+(\.[^\s@.,;:<>()[\]\\]+)+$/;
 
@@ -22,121 +25,141 @@ export function assertValidEmail(email) {
 }
 
 /* ------------------------------------------------------------------ *
- * Login codes
+ * Passwords
+ *
+ * scrypt is memory-hard and part of Node's standard library, so the
+ * shop keeps its promise of having no dependencies while still storing
+ * passwords properly. The parameters live in the stored string, so
+ * they can be raised later without invalidating existing passwords.
  * ------------------------------------------------------------------ */
-function hashCode(email, code) {
-  return createHmac('sha256', config.secretKey).update(`${email}:${code}`).digest('hex');
+const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64, maxmem: 64 * 1024 * 1024 };
+
+export async function hashPassword(password) {
+  const salt = randomBytes(16);
+  const key = await scryptAsync(String(password).normalize('NFKC'), salt, SCRYPT.keylen, SCRYPT);
+  return ['scrypt', SCRYPT.N, SCRYPT.r, SCRYPT.p, salt.toString('base64'), key.toString('base64')].join('$');
 }
 
-function safeEqualHex(a, b) {
-  const bufA = Buffer.from(a, 'hex');
-  const bufB = Buffer.from(b, 'hex');
-  if (bufA.length !== bufB.length || bufA.length === 0) return false;
-  return timingSafeEqual(bufA, bufB);
+export async function verifyPassword(password, stored) {
+  if (!stored || typeof stored !== 'string') return false;
+  const parts = stored.split('$');
+  if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
+
+  const N = Number(parts[1]);
+  const r = Number(parts[2]);
+  const p = Number(parts[3]);
+  if (!Number.isFinite(N) || !Number.isFinite(r) || !Number.isFinite(p)) return false;
+
+  let salt;
+  let expected;
+  try {
+    salt = Buffer.from(parts[4], 'base64');
+    expected = Buffer.from(parts[5], 'base64');
+  } catch {
+    return false;
+  }
+  if (salt.length === 0 || expected.length === 0) return false;
+
+  const key = await scryptAsync(String(password).normalize('NFKC'), salt, expected.length, {
+    N, r, p, maxmem: SCRYPT.maxmem,
+  });
+  return key.length === expected.length && timingSafeEqual(key, expected);
 }
 
-function generateCode() {
-  const max = 10 ** config.auth.codeLength;
-  return String(randomInt(0, max)).padStart(config.auth.codeLength, '0');
-}
+/** A hash of a value nobody can supply, so a login for an unknown
+ *  address still costs the same time as a real one. */
+const DECOY_HASH = await hashPassword(randomBytes(32).toString('hex'));
 
-/**
- * Create a one-time login code for an address.
- * Throws a 429 if the address has asked too often in the last hour.
- */
-export function issueLoginCode(email, ip) {
-  const hourAgo = Date.now() - 3_600_000;
-  const recent = db
-    .prepare('SELECT COUNT(*) AS n FROM login_codes WHERE email = ? AND created_at > ?')
-    .get(email, hourAgo);
-  if ((recent?.n || 0) >= config.auth.codeRequestsPerHour) {
-    throw tooMany(
-      'Too many codes requested for this address. Please wait an hour and try again.',
-      3600,
-    );
+export function checkPasswordStrength(password) {
+  const value = String(password ?? '');
+  if (value.length < config.auth.minPasswordLength) {
+    return `Your password needs at least ${config.auth.minPasswordLength} characters.`;
   }
-
-  /* Any earlier code for this address stops working immediately. */
-  db.prepare('UPDATE login_codes SET consumed = 1 WHERE email = ? AND consumed = 0').run(email);
-
-  const code = generateCode();
-  const now = Date.now();
-  db.prepare(
-    `INSERT INTO login_codes (email, code_hash, expires_at, ip, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-  ).run(email, hashCode(email, code), now + config.auth.codeTtlMs, ip || '', now);
-
-  /* Opportunistic cleanup of anything long expired. */
-  db.prepare('DELETE FROM login_codes WHERE expires_at < ?').run(now - 86_400_000);
-
-  return code;
-}
-
-/**
- * Check a submitted code. Returns the user row on success.
- * Every failure path costs the requester one of their attempts.
- */
-export function verifyLoginCode(email, submitted) {
-  const clean = String(submitted ?? '').replace(/\D/g, '');
-  if (clean.length !== config.auth.codeLength) {
-    throw badRequest(`Enter the ${config.auth.codeLength}-digit code from your e-mail.`, 'bad_code');
-  }
-
-  const row = db
-    .prepare(
-      `SELECT * FROM login_codes WHERE email = ? AND consumed = 0
-       ORDER BY created_at DESC LIMIT 1`,
-    )
-    .get(email);
-
-  if (!row) {
-    throw badRequest('That code is not valid. Please request a new one.', 'bad_code');
-  }
-  if (row.expires_at < Date.now()) {
-    db.prepare('UPDATE login_codes SET consumed = 1 WHERE id = ?').run(row.id);
-    throw badRequest('That code has expired. Please request a new one.', 'expired');
-  }
-  if (row.attempts >= config.auth.codeMaxAttempts) {
-    db.prepare('UPDATE login_codes SET consumed = 1 WHERE id = ?').run(row.id);
-    throw tooMany('Too many wrong attempts. Please request a new code.', 60);
-  }
-
-  if (!safeEqualHex(row.code_hash, hashCode(email, clean))) {
-    db.prepare('UPDATE login_codes SET attempts = attempts + 1 WHERE id = ?').run(row.id);
-    const left = config.auth.codeMaxAttempts - (row.attempts + 1);
-    throw badRequest(
-      left > 0
-        ? `That code is not correct. ${left} ${left === 1 ? 'try' : 'tries'} left.`
-        : 'That code is not correct. Please request a new one.',
-      'bad_code',
-    );
-  }
-
-  db.prepare('UPDATE login_codes SET consumed = 1 WHERE id = ?').run(row.id);
-  return upsertUser(email);
+  if (value.length > 200) return 'That password is too long.';
+  if (!/[^\s]/.test(value)) return 'Your password cannot be only spaces.';
+  return '';
 }
 
 /* ------------------------------------------------------------------ *
- * Users
+ * Accounts
  * ------------------------------------------------------------------ */
-export function upsertUser(email) {
-  const role = isAdminEmail(email) ? 'admin' : 'customer';
-  let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+export function findUserByEmail(email) {
+  return db.prepare('SELECT * FROM users WHERE email = ?').get(email) || null;
+}
 
-  if (!user) {
-    db.prepare('INSERT INTO users (email, role) VALUES (?, ?)').run(email, role);
-    user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  } else if (user.role !== role) {
-    /* Keep the role in step with ADMIN_EMAILS, in both directions, so
-     * granting or revoking ownership is just a config change. */
+/** Keep the stored role in step with ADMIN_EMAILS, in both directions. */
+function syncRole(user) {
+  const role = isAdminEmail(user.email) ? 'admin' : 'customer';
+  if (user.role !== role) {
     db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, user.id);
     user.role = role;
   }
+  return user;
+}
 
+export async function createUser({ email, password, name = '', phone = '' }) {
+  assertValidEmail(email);
+  const problem = checkPasswordStrength(password);
+  if (problem) throw badRequest(problem, 'weak_password');
+
+  if (findUserByEmail(email)) {
+    throw badRequest('An account with this e-mail already exists. Please sign in instead.', 'email_taken');
+  }
+
+  const hash = await hashPassword(password);
+  const role = isAdminEmail(email) ? 'admin' : 'customer';
+  db.prepare(
+    'INSERT INTO users (email, password_hash, name, phone, role) VALUES (?, ?, ?, ?, ?)',
+  ).run(email, hash, String(name).trim().slice(0, 80), String(phone).trim().slice(0, 30), role);
+
+  return findUserByEmail(email);
+}
+
+/**
+ * Check an e-mail and password.
+ *
+ * Wrong addresses and wrong passwords fail identically, and both cost
+ * the same time, so this cannot be used to discover who has an account.
+ */
+export async function authenticate(email, password, ip = '') {
+  const attemptKey = `login:${email}`;
+  const attempts = rateLimit(attemptKey, config.auth.maxLoginAttempts, config.auth.lockoutMs);
+  if (!attempts.allowed) {
+    throw tooMany(
+      `Too many sign-in attempts for this address. Please try again in ${Math.ceil(attempts.retryAfter / 60)} minutes.`,
+      attempts.retryAfter,
+    );
+  }
+
+  const user = findUserByEmail(email);
+  const ok = await verifyPassword(password, user ? user.password_hash : DECOY_HASH);
+
+  if (!user || !ok) {
+    throw unauthorized('That e-mail or password is not correct.');
+  }
   if (user.is_blocked) throw forbidden('This account has been disabled.');
 
+  /* A clean sign-in clears the failure count for the address. */
+  rateLimit(attemptKey, config.auth.maxLoginAttempts, config.auth.lockoutMs, { reset: true });
+
+  syncRole(user);
   db.prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(user.id);
   return user;
+}
+
+export async function setPassword(userId, password) {
+  const problem = checkPasswordStrength(password);
+  if (problem) throw badRequest(problem, 'weak_password');
+  const hash = await hashPassword(password);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
+
+  /* Forgetting a password is the usual reason an address gets locked
+   * out, so a new password has to lift the lockout too — otherwise the
+   * reset hands someone a password they still cannot use. */
+  const row = db.prepare('SELECT email FROM users WHERE id = ?').get(userId);
+  if (row) {
+    rateLimit(`login:${normalizeEmail(row.email)}`, config.auth.maxLoginAttempts, config.auth.lockoutMs, { reset: true });
+  }
 }
 
 export function publicUser(user) {
@@ -157,8 +180,8 @@ export function publicUser(user) {
 /* ------------------------------------------------------------------ *
  * Sessions
  *
- * The cookie holds a random token; the database only ever stores its
- * hash, so a leaked database cannot be used to impersonate anyone.
+ * The cookie holds a random token; the database stores only its hash,
+ * so a leaked database cannot be used to impersonate anyone.
  * ------------------------------------------------------------------ */
 function hashToken(token) {
   return createHmac('sha256', config.secretKey).update(token).digest('hex');
@@ -185,14 +208,7 @@ export function getSessionUser(token) {
     )
     .get(hashToken(token), Date.now());
   if (!row || row.is_blocked) return null;
-
-  /* Ownership is decided by configuration, not by a stale row. */
-  const role = isAdminEmail(row.email) ? 'admin' : 'customer';
-  if (row.role !== role) {
-    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, row.id);
-    row.role = role;
-  }
-  return row;
+  return syncRole(row);
 }
 
 export function destroySession(token) {

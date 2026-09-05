@@ -78,31 +78,16 @@ export const config = {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean),
 
-  mail: {
-    provider: (env.MAIL_PROVIDER || 'console').trim().toLowerCase(),
-    fromName: env.MAIL_FROM_NAME || 'Al-Talil Al-Ghali',
-    from: env.MAIL_FROM || 'no-reply@example.com',
-    smtp: {
-      host: env.SMTP_HOST || '',
-      port: int(env.SMTP_PORT, 465),
-      user: env.SMTP_USER || '',
-      pass: env.SMTP_PASS || '',
-      secure: bool(env.SMTP_SECURE, int(env.SMTP_PORT, 465) === 465),
-    },
-    resendKey: env.RESEND_API_KEY || '',
-    brevoKey: env.BREVO_API_KEY || '',
-    /* Overridable so the shop can post through a regional endpoint or a
-     * corporate relay instead of the public API host. */
-    resendUrl: env.RESEND_API_URL || 'https://api.resend.com/emails',
-    brevoUrl: env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email',
-  },
+  /* Set this to choose the owner's password yourself. Leave it empty
+   * and a strong one is generated on first start and printed once. */
+  adminPassword: env.ADMIN_PASSWORD || '',
 
   auth: {
-    codeTtlMs: int(env.CODE_TTL_MINUTES, 10) * 60_000,
-    codeMaxAttempts: int(env.CODE_MAX_ATTEMPTS, 5),
-    codeRequestsPerHour: int(env.CODE_REQUESTS_PER_HOUR, 5),
     sessionMs: int(env.SESSION_DAYS, 30) * 24 * 60 * 60_000,
-    codeLength: 6,
+    minPasswordLength: int(env.MIN_PASSWORD_LENGTH, 8),
+    /* Wrong guesses allowed before an address is locked for a while. */
+    maxLoginAttempts: int(env.MAX_LOGIN_ATTEMPTS, 8),
+    lockoutMs: int(env.LOCKOUT_MINUTES, 15) * 60_000,
   },
 
   shop: {

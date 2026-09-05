@@ -8,7 +8,8 @@ import {
   DEFAULT_SETTINGS,
   getOrderWithItems,
 } from '../db.js';
-import { requireAdmin, publicUser } from '../auth.js';
+import { randomBytes } from 'node:crypto';
+import { requireAdmin, publicUser, setPassword } from '../auth.js';
 import { saveImageDataUrl, deleteUpload } from '../storage.js';
 import { readJson, sendJson, notFound, badRequest } from '../http.js';
 
@@ -426,6 +427,27 @@ export function registerAdminRoutes(router) {
       db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(blocked, id);
       if (blocked) db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
       sendJson(res, 200, { ok: true });
+    }),
+  );
+
+  /* Give a customer who forgot their password a new one to sign in with. */
+  router.post(
+    '/api/admin/customers/:id/password',
+    guard(async (req, res, ctx) => {
+      const id = Number(ctx.params.id);
+      const target = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+      if (!target) throw notFound('That customer no longer exists.');
+      if (target.role === 'admin') {
+        throw badRequest('Change an owner password from Settings, or with "npm run password".', 'is_admin');
+      }
+
+      /* Readable, but well past guessing — the owner reads this out to
+       * the customer, who changes it from their account page. */
+      const temporary = 'talil-' + randomBytes(4).toString('hex');
+      await setPassword(id, temporary);
+      db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+
+      sendJson(res, 200, { ok: true, email: target.email, temporary_password: temporary });
     }),
   );
 
