@@ -91,6 +91,10 @@ export const config = {
     },
     resendKey: env.RESEND_API_KEY || '',
     brevoKey: env.BREVO_API_KEY || '',
+    /* Overridable so the shop can post through a regional endpoint or a
+     * corporate relay instead of the public API host. */
+    resendUrl: env.RESEND_API_URL || 'https://api.resend.com/emails',
+    brevoUrl: env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email',
   },
 
   auth: {

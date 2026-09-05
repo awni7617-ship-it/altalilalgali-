@@ -197,7 +197,7 @@ function buildMimeMessage({ to, subject, html, text }) {
  * HTTP providers — no SMTP ports needed, easiest to set up.
  * ------------------------------------------------------------------ */
 async function sendViaResend({ to, subject, html, text }) {
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch(config.mail.resendUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.mail.resendKey}`,
@@ -215,7 +215,7 @@ async function sendViaResend({ to, subject, html, text }) {
 }
 
 async function sendViaBrevo({ to, subject, html, text }) {
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+  const res = await fetch(config.mail.brevoUrl, {
     method: 'POST',
     headers: { 'api-key': config.mail.brevoKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
