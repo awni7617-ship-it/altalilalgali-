@@ -17,6 +17,7 @@ import {
 } from '../auth.js';
 import {
   readJson, sendJson, setCookie, clearCookie, clientIp, rateLimit, tooMany, badRequest, unauthorized,
+  isSecureRequest,
 } from '../http.js';
 
 export function registerAuthRoutes(router) {
@@ -53,7 +54,7 @@ export function registerAuthRoutes(router) {
     });
 
     const token = createSession(user.id, { ip, userAgent: req.headers['user-agent'] || '' });
-    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs, secure: isSecureRequest(req) });
     sendJson(res, 201, { ok: true, user: publicUser(user) });
   });
 
@@ -74,7 +75,7 @@ export function registerAuthRoutes(router) {
     const user = await authenticate(email, String(body.password ?? ''), ip);
     const token = createSession(user.id, { ip, userAgent: req.headers['user-agent'] || '' });
 
-    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs, secure: isSecureRequest(req) });
     sendJson(res, 200, { ok: true, user: publicUser(user) });
   });
 
@@ -121,7 +122,7 @@ export function registerAuthRoutes(router) {
       ip: clientIp(req),
       userAgent: req.headers['user-agent'] || '',
     });
-    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs, secure: isSecureRequest(req) });
 
     sendJson(res, 200, { ok: true, message: 'Your password was changed. Other devices were signed out.' });
   });

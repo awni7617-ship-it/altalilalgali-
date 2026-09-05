@@ -40,6 +40,38 @@ Then open <http://localhost:3000>, or go straight to the dashboard at
 
 ---
 
+## ١ب. التجربة على الآيفون · Trying it on your phone
+
+This is a **web app**, not an App Store app. It runs in Safari and Chrome, which means
+it works on iPhone *and* Android — no app to install, no review process, and customers
+reach it by tapping a link.
+
+### Over your home WiFi
+
+With the shop running on your computer, and the phone on the **same WiFi**:
+
+1. Find your computer's address on the network:
+   - **Mac**: System Settings → Wi-Fi → Details → IP address
+   - **Windows**: `ipconfig` in the terminal, look for *IPv4 Address*
+   It looks like `192.168.1.14`.
+2. On the phone, open `http://192.168.1.14:3000` (your number, same port).
+
+Sign-in works over plain `http` on a local network — the session cookie is only marked
+`Secure` when the connection actually is.
+
+### Adding it to the home screen
+
+In Safari, tap **Share** → **Add to Home Screen**. You get the shop's own icon, and it
+opens full-screen with no browser bars — it behaves like an installed app. The
+announcement bar hides itself there so the status bar has room.
+
+Android works the same way through *Install app* in Chrome's menu.
+
+> One caveat: on your home WiFi only you can reach it. For customers, and for the
+> Google button, the shop has to be online — see *Going live* below.
+
+---
+
 ## ٢. حساب المدير · The owner account
 
 The owner e-mail is **`carsyardltd@icloud.com`**, already set as the default.

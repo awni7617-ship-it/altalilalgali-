@@ -867,6 +867,21 @@ table.data tbody tr:hover { background: var(--plum-50); }
 .section-card h3 { font-size: 16px; margin-bottom: 4px; }
 .section-card > p { color: var(--ink-mute); font-size: 13.5px; margin-bottom: 16px; }
 
+/* ==================================================================
+   Installed to the home screen
+   There is no browser chrome here, so the app has to keep its own
+   content clear of the notch and the home indicator.
+   ================================================================== */
+@media (display-mode: standalone) {
+  /* The announcement bar is shop-window copy; inside an installed app
+     it only steals the space the status bar needs. */
+  .announce { display: none; }
+  .site-header, .admin-top { padding-block-start: env(safe-area-inset-top); }
+  .auth-page { padding-block-start: calc(24px + env(safe-area-inset-top)); }
+  body { padding-block-end: env(safe-area-inset-bottom); }
+  .drawer, .modal { padding-block-end: env(safe-area-inset-bottom); }
+}
+
 @media print {
   .site-header, .cat-nav, .site-footer, .admin-nav, .admin-top, .toasts { display: none !important; }
 }

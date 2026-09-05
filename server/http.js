@@ -143,10 +143,28 @@ export function parseCookies(req) {
   return out;
 }
 
+/**
+ * Did this request actually arrive over HTTPS?
+ *
+ * Cookie security has to follow the connection, not the NODE_ENV
+ * setting: a `Secure` cookie is silently dropped over plain http, so
+ * marking one on a phone reaching the shop at http://192.168.x.x would
+ * make signing in fail with no visible reason. Behind a reverse proxy
+ * the real scheme arrives in X-Forwarded-Proto.
+ */
+export function isSecureRequest(req) {
+  if (req.socket?.encrypted) return true;
+  const forwarded = req.headers['x-forwarded-proto'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim().toLowerCase() === 'https';
+  }
+  return false;
+}
+
 export function setCookie(res, name, value, { maxAge, httpOnly = true, secure, sameSite = 'Lax' } = {}) {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', `SameSite=${sameSite}`];
   if (httpOnly) parts.push('HttpOnly');
-  if (secure ?? config.isProduction) parts.push('Secure');
+  if (secure) parts.push('Secure');
   if (maxAge !== undefined) parts.push(`Max-Age=${Math.floor(maxAge / 1000)}`);
   const existing = res.getHeader('Set-Cookie');
   const list = existing ? (Array.isArray(existing) ? existing : [existing]) : [];
@@ -236,6 +254,7 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',

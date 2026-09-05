@@ -18,6 +18,7 @@ import {
   setCookie,
   clientIp,
   readForm,
+  isSecureRequest,
 } from './http.js';
 import { authorizeUrl, completeSignIn } from './oauth.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -207,7 +208,7 @@ async function handleOAuth(req, res, ctx, pathname) {
       ip: clientIp(req),
       userAgent: req.headers['user-agent'] || '',
     });
-    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs, secure: isSecureRequest(req) });
 
     const wantsAdmin = /^\/admin(\.html)?$/.test(profile.next || '');
     const destination = profile.next && !(wantsAdmin && account.role !== 'admin')
