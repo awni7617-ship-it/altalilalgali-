@@ -34,7 +34,10 @@
 
     <div class="header-actions">
       <button class="lang-btn" id="langBtn" type="button">English</button>
-      <a class="icon-btn" href="/login.html" id="accountBtn" title="Account" aria-label="Account">👤</a>
+      <a class="btn btn-ghost btn-sm account-btn" href="/login.html" id="accountBtn">
+        <span aria-hidden="true" id="accountIcon">👤</span>
+        <span class="account-label" id="accountLabel">تسجيل الدخول</span>
+      </a>
       <button class="icon-btn" id="cartBtn" type="button" aria-label="Cart">
         🛍️<span class="cart-count" id="cartCount" hidden>0</span>
       </button>

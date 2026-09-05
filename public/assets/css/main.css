@@ -339,9 +339,13 @@ img { max-width: 100%; display: block; }
   .header-search { order: 3; flex-basis: 100%; max-width: none; }
   .header-actions { margin-inline-start: 0; }
 }
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .brand-sub { display: none; }
   .lang-btn { padding: 6px 10px; font-size: 12px; }
+  /* Keep the sign-in button, but let it shrink to its icon so the
+     header still fits on a narrow phone. */
+  .account-btn .account-label { display: none; }
+  .account-btn { padding: 8px 11px; }
 }
 
 .cart-count {

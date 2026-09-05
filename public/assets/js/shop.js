@@ -79,6 +79,10 @@ function wireStaticText() {
     }, 200);
   });
 
+  /* Label it before the session check comes back, so the button is
+   * never a bare icon and never the wrong language. */
+  paintAccountButton();
+
   $('#cartBtn').addEventListener('click', openCart);
   $('#heroCta').addEventListener('click', () => {
     document.getElementById('catalogue').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -135,13 +139,25 @@ function paintShopIdentity() {
 
 function paintAccountButton() {
   const button = $('#accountBtn');
-  if (!state.user) return;
+  const icon = $('#accountIcon');
+  const label = $('#accountLabel');
+
+  if (!state.user) {
+    button.href = '/login.html';
+    icon.textContent = '👤';
+    label.textContent = t('login');
+    button.title = t('login');
+    return;
+  }
   if (state.user.is_admin) {
     button.href = '/admin.html';
-    button.textContent = '👑';
+    icon.textContent = '👑';
+    label.textContent = t('admin_panel');
     button.title = t('admin_panel');
   } else {
     button.href = '/account.html';
+    icon.textContent = '👤';
+    label.textContent = t('account');
     button.title = t('account');
   }
 }
