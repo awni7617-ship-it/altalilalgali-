@@ -1,7 +1,7 @@
 /* ==================================================================
    Sign in / create an account — e-mail and password.
    ================================================================== */
-import { api, isArabic, esc, toast, $, applyLanguage } from './core.js';
+import { api, isArabic, esc, toast, $, applyLanguage, toggleLanguage } from './core.js';
 
 const text = {
   ar: {
@@ -134,6 +134,11 @@ async function loadProviders() {
 }
 
 function paintText() {
+  /* The login page is the first thing a visitor sees, so the language
+   * switch has to live here too — not only inside the shop. */
+  $('#langBtn').textContent = isArabic() ? 'English' : 'العربية';
+  $('#langBtn').addEventListener('click', toggleLanguage);
+
   $('#authSub').textContent = s('sub');
   $('#tabLogin').textContent = s('tab_login');
   $('#tabRegister').textContent = s('tab_register');

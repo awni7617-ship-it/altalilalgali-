@@ -590,6 +590,7 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-xl); padding: 34px 30px;
   box-shadow: 0 24px 60px rgba(40, 10, 22, .35);
 }
+.auth-top { display: flex; justify-content: flex-end; margin-block-end: 4px; }
 .auth-brand { text-align: center; margin-bottom: 26px; }
 .auth-brand .brand-mark { width: 56px; height: 56px; font-size: 26px; border-radius: 17px; margin-inline: auto; margin-bottom: 12px; }
 .auth-brand h1 { font-family: var(--font-display); font-size: 24px; color: var(--plum-800); }
