@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4a1528">
+<title>تسجيل الدخول · Sign in</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237d2b48'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle'%3E%F0%9F%92%84%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body class="auth-page">
+
+<main class="auth-card">
+  <div class="auth-brand">
+    <div class="brand-mark">💄</div>
+    <h1 id="shopName">الطليل الغالي</h1>
+    <p id="authSub">سجّلي الدخول برمز يُرسل إلى بريدك — بدون كلمة مرور</p>
+  </div>
+
+  <!-- Step 1: e-mail -->
+  <form id="emailStep" novalidate>
+    <div class="field">
+      <label for="email" id="emailLabel">البريد الإلكتروني</label>
+      <input class="input" type="email" id="email" name="email" required dir="ltr"
+             autocomplete="email" inputmode="email" placeholder="name@example.com">
+      <p class="error-text" id="emailError" hidden></p>
+    </div>
+    <button class="btn btn-lg btn-block" type="submit" id="sendBtn">إرسال الرمز</button>
+    <div class="owner-hint" id="ownerHint">
+      👑 <strong>حساب المدير:</strong> عند إدخال بريد المالك سيصلك رمز الدخول إلى لوحة التحكم مباشرة.
+    </div>
+  </form>
+
+  <!-- Step 2: the code -->
+  <form id="codeStep" novalidate hidden>
+    <div class="sent-to" id="sentTo"></div>
+    <div class="otp-inputs" id="otpInputs" role="group" aria-label="Verification code"></div>
+    <p class="error-text" id="codeError" style="text-align:center;" hidden></p>
+    <div id="devCodeBox"></div>
+    <button class="btn btn-lg btn-block" type="submit" id="verifyBtn" style="margin-top:16px;">
+      تأكيد وتسجيل الدخول
+    </button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+      <button class="link-btn" type="button" id="backBtn">← تغيير البريد</button>
+      <button class="link-btn" type="button" id="resendBtn">إعادة الإرسال</button>
+    </div>
+  </form>
+
+  <p style="text-align:center;margin:22px 0 0;">
+    <a href="/" id="backShop" style="font-size:13.5px;color:var(--ink-mute);">← العودة للمتجر</a>
+  </p>
+</main>
+
+<script type="module" src="/assets/js/login.js"></script>
+</body>
+</html>

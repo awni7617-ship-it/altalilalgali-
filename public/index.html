@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7d2b48">
+<title>الطليل الغالي · Al-Talil Al-Ghali</title>
+<meta name="description" content="مكياج أصلي بأسعار تنافسية مع توصيل لكل مدن فلسطين — Authentic makeup delivered across Palestine.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237d2b48'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle'%3E%F0%9F%92%84%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+
+<div class="announce" id="announce"></div>
+
+<header class="site-header">
+  <div class="wrap header-bar">
+    <a class="brand" href="/">
+      <span class="brand-mark">💄</span>
+      <span>
+        <span class="brand-name" id="brandName">الطليل الغالي</span>
+        <span class="brand-sub">MAKEUP · PALESTINE</span>
+      </span>
+    </a>
+
+    <div class="header-search">
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input class="input" type="search" id="searchInput" autocomplete="off">
+      <label class="sr-only" for="searchInput" id="searchLabel">Search</label>
+    </div>
+
+    <div class="header-actions">
+      <button class="lang-btn" id="langBtn" type="button">English</button>
+      <a class="icon-btn" href="/login.html" id="accountBtn" title="Account" aria-label="Account">👤</a>
+      <button class="icon-btn" id="cartBtn" type="button" aria-label="Cart">
+        🛍️<span class="cart-count" id="cartCount" hidden>0</span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="cat-nav" aria-label="Categories">
+    <div class="wrap cat-scroll" id="catNav"></div>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <h1 id="heroTitle">جمالكِ يستحق الأفضل</h1>
+      <p id="heroText">مكياج أصلي مختار بعناية، بأسعار في متناول الجميع، مع توصيل لكل مدن فلسطين.</p>
+      <div class="hero-badges" id="heroBadges"></div>
+      <button class="btn btn-lg btn-hero" id="heroCta" type="button">تسوّقي الآن</button>
+    </div>
+  </section>
+
+  <section class="section" id="featuredSection" hidden>
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2 id="featuredTitle">الأكثر طلباً</h2>
+          <p id="featuredSub">اختيارات عملائنا المفضلة</p>
+        </div>
+      </div>
+      <div class="product-grid" id="featuredGrid"></div>
+    </div>
+  </section>
+
+  <section class="section" id="catalogue">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2 id="catalogueTitle">المنتجات</h2>
+          <p id="resultCount"></p>
+        </div>
+        <div class="toolbar">
+          <select class="select" id="sortSelect" aria-label="Sort"></select>
+        </div>
+      </div>
+      <div class="product-grid" id="productGrid"></div>
+      <div id="gridEmpty" hidden></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h3 id="footBrand">الطليل الغالي</h3>
+        <p style="font-size:14px;line-height:1.8;" id="footAbout"></p>
+      </div>
+      <div>
+        <h3 id="footContactTitle">تواصلي معنا</h3>
+        <ul class="footer-links" id="footContact"></ul>
+      </div>
+      <div>
+        <h3 id="footLinksTitle">روابط</h3>
+        <ul class="footer-links">
+          <li><a href="/login.html" id="footLogin">تسجيل الدخول</a></li>
+          <li><a href="/account.html" id="footOrders">طلباتي</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span id="footCopy"></span>
+      <span id="footTag"></span>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/shop.js"></script>
+</body>
+</html>

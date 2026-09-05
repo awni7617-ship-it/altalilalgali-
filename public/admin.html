@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4a1528">
+<title>لوحة التحكم · Dashboard</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234a1528'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle'%3E%F0%9F%91%91%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body class="admin-body">
+
+<header class="admin-top">
+  <div class="wrap admin-top-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">👑</span>
+      <span>
+        <span class="brand-name" id="topShopName">لوحة التحكم</span>
+        <span class="brand-sub">ADMIN</span>
+      </span>
+    </a>
+    <div class="admin-top-actions">
+      <span class="admin-who" id="whoAmI"></span>
+      <button class="lang-btn" id="langBtn" type="button">English</button>
+      <a class="btn btn-ghost btn-sm" href="/" id="viewShopBtn">عرض المتجر</a>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">خروج</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap admin-shell">
+  <nav class="admin-nav" id="adminNav" aria-label="Sections"></nav>
+  <main id="adminMain">
+    <div style="padding:60px 0;"><div class="spinner"></div></div>
+  </main>
+</div>
+
+<script type="module" src="/assets/js/admin.js"></script>
+</body>
+</html>
