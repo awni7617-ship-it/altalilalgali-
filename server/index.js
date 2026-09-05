@@ -1,10 +1,10 @@
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { config } from './config.js';
+import { config, enabledProviders } from './config.js';
 import { getSettings } from './db.js';
 import {
-  SESSION_COOKIE, getSessionUser, findUserByEmail, createUser,
-  setPassword, verifyPassword, checkPasswordStrength,
+  SESSION_COOKIE, getSessionUser, findUserByEmail, createUser, createSession,
+  setPassword, verifyPassword, checkPasswordStrength, userFromProvider,
 } from './auth.js';
 import {
   Router,
@@ -15,7 +15,11 @@ import {
   securityHeaders,
   assertSameOrigin,
   notFound,
+  setCookie,
+  clientIp,
+  readForm,
 } from './http.js';
+import { authorizeUrl, completeSignIn } from './oauth.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerShopRoutes } from './routes/shop.js';
 import { registerAdminRoutes } from './routes/admin.js';
@@ -29,6 +33,18 @@ registerAdminRoutes(router);
  * owner. The API is what actually enforces this — hiding the page just
  * avoids showing an empty dashboard. */
 const ADMIN_PAGES = new Set(['/admin', '/admin.html']);
+
+/* Reachable without signing in, even when REQUIRE_LOGIN is on. */
+const PUBLIC_PATHS = new Set(['/login', '/login.html']);
+const PUBLIC_API = new Set([
+  '/api/auth/login', '/api/auth/register', '/api/auth/me',
+  '/api/auth/logout', '/api/auth/providers',
+]);
+
+function isOpenAsset(pathname) {
+  return pathname.startsWith('/assets/') || pathname.startsWith('/uploads/') ||
+    pathname === '/favicon.ico';
+}
 
 const server = http.createServer(async (req, res) => {
   securityHeaders(res);
@@ -52,9 +68,24 @@ const server = http.createServer(async (req, res) => {
   const ctx = { user, token, query: url.searchParams, params: {} };
 
   try {
+    /* ---------------- Social sign-in ---------------- *
+     * These sit outside the API: the browser arrives here by
+     * redirect from Google, or by cross-site POST from Apple, so the
+     * usual same-origin rule cannot apply. The one-time `state` is
+     * what makes the callback safe. */
+    if (pathname.startsWith('/auth/')) {
+      await handleOAuth(req, res, ctx, pathname);
+      return;
+    }
+
     /* ---------------- API ---------------- */
     if (pathname.startsWith('/api/')) {
       assertSameOrigin(req);
+
+      /* With the gate on, the catalogue is not public either. */
+      if (config.requireLogin && !user && !PUBLIC_API.has(pathname.replace(/\/+$/, ''))) {
+        throw new HttpError(401, 'Please sign in to continue.', 'unauthorized');
+      }
       const match = router.match(req.method, pathname);
       if (!match) throw notFound('That endpoint does not exist.');
       if (match.methodNotAllowed) {
@@ -75,6 +106,13 @@ const server = http.createServer(async (req, res) => {
 
     if (ADMIN_PAGES.has(pathname) && (!user || user.role !== 'admin')) {
       res.writeHead(302, { Location: '/login.html?next=/admin.html' });
+      return res.end();
+    }
+
+    /* The shop itself is behind the sign-in wall when asked for. */
+    if (config.requireLogin && !user && !PUBLIC_PATHS.has(pathname) && !isOpenAsset(pathname)) {
+      const next = pathname === '/' ? '' : `?next=${encodeURIComponent(pathname)}`;
+      res.writeHead(302, { Location: `/login.html${next}` });
       return res.end();
     }
 
@@ -108,6 +146,82 @@ const server = http.createServer(async (req, res) => {
     res.end();
   }
 });
+
+/**
+ * Google and Apple sign-in.
+ *
+ * /auth/<provider>          sends the browser off to the provider
+ * /auth/<provider>/callback receives them again and starts a session
+ */
+async function handleOAuth(req, res, ctx, pathname) {
+  const parts = pathname.split('/').filter(Boolean);   // ['auth', provider, ...]
+  const provider = parts[1] || '';
+  const isCallback = parts[2] === 'callback';
+
+  if (!enabledProviders().includes(provider)) {
+    res.writeHead(302, { Location: '/login.html?error=provider_off' });
+    return res.end();
+  }
+
+  if (!isCallback) {
+    if (req.method !== 'GET') {
+      res.writeHead(405, { Allow: 'GET' });
+      return res.end('Method not allowed');
+    }
+    const raw = ctx.query.get('next') || '';
+    const next = /^\/[A-Za-z0-9._~\-/]*$/.test(raw) ? raw : '';
+    res.writeHead(302, { Location: authorizeUrl(provider, next) });
+    return res.end();
+  }
+
+  /* Google comes back by GET, Apple by form POST. */
+  let fields;
+  if (req.method === 'POST') {
+    fields = await readForm(req);
+  } else if (req.method === 'GET') {
+    fields = Object.fromEntries(ctx.query.entries());
+  } else {
+    res.writeHead(405, { Allow: 'GET, POST' });
+    return res.end('Method not allowed');
+  }
+
+  if (fields.error) {
+    /* The person pressed cancel on the provider's screen. */
+    res.writeHead(302, { Location: '/login.html?error=cancelled' });
+    return res.end();
+  }
+
+  try {
+    const profile = await completeSignIn(provider, {
+      code: fields.code,
+      state: fields.state,
+      userJson: fields.user,
+    });
+    const account = userFromProvider({
+      provider,
+      providerId: profile.providerId,
+      email: profile.email,
+      name: profile.name,
+    });
+    const token = createSession(account.id, {
+      ip: clientIp(req),
+      userAgent: req.headers['user-agent'] || '',
+    });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: config.auth.sessionMs });
+
+    const wantsAdmin = /^\/admin(\.html)?$/.test(profile.next || '');
+    const destination = profile.next && !(wantsAdmin && account.role !== 'admin')
+      ? profile.next
+      : (account.role === 'admin' ? '/admin.html' : '/');
+    res.writeHead(302, { Location: destination });
+    return res.end();
+  } catch (err) {
+    console.error('[oauth]', provider, err.message);
+    const code = err instanceof HttpError ? err.code || 'failed' : 'failed';
+    res.writeHead(302, { Location: `/login.html?error=${encodeURIComponent(code)}` });
+    return res.end();
+  }
+}
 
 /**
  * Make sure the owner can always get in.

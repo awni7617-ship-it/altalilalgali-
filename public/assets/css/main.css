@@ -595,6 +595,38 @@ img { max-width: 100%; display: block; }
 .auth-brand h1 { font-family: var(--font-display); font-size: 24px; color: var(--plum-800); }
 .auth-brand p { color: var(--ink-mute); font-size: 14px; margin: 6px 0 0; }
 
+/* Google / Apple sign-in */
+.provider-stack { display: flex; flex-direction: column; gap: 9px; }
+.provider-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 12px 18px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); font-size: 15px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.provider-btn:hover {
+  text-decoration: none; border-color: var(--ink-mute);
+  box-shadow: var(--shadow-sm); background: var(--surface-2);
+}
+.provider-btn svg { flex: none; }
+.provider-apple { background: #000; border-color: #000; color: #fff; }
+.provider-apple:hover { background: #1c1c1e; border-color: #1c1c1e; color: #fff; }
+
+.or-rule {
+  display: flex; align-items: center; gap: 12px;
+  margin: 18px 0; color: var(--ink-mute); font-size: 12.5px;
+}
+.or-rule::before, .or-rule::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+
+.alert-box {
+  background: var(--bad-bg); border: 1px solid rgba(179, 38, 30, .2);
+  border-radius: var(--radius-sm); padding: 10px 13px;
+  margin-bottom: 16px; text-align: center;
+}
+
 /* Sign in / create account tabs */
 .tabs {
   display: flex; gap: 4px; padding: 4px; margin-bottom: 20px;

@@ -147,6 +147,40 @@ export async function authenticate(email, password, ip = '') {
   return user;
 }
 
+/**
+ * Sign someone in who came back from Google or Apple.
+ *
+ * The e-mail address is the identity. Someone who already has a
+ * password account and then uses Google with the same address gets the
+ * same account, not a second one — their password keeps working too.
+ */
+export function userFromProvider({ provider, providerId, email, name }) {
+  assertValidEmail(email);
+  const existing = findUserByEmail(email);
+
+  if (existing) {
+    if (existing.is_blocked) throw forbidden('This account has been disabled.');
+    /* Record the link the first time, and fill in a missing name. */
+    db.prepare(
+      `UPDATE users SET provider = ?, provider_id = ?,
+         name = CASE WHEN name = '' THEN ? ELSE name END,
+         last_login_at = datetime('now')
+       WHERE id = ?`,
+    ).run(provider, providerId || '', String(name || '').trim().slice(0, 80), existing.id);
+
+    rateLimit(`login:${email}`, config.auth.maxLoginAttempts, config.auth.lockoutMs, { reset: true });
+    return syncRole(findUserByEmail(email));
+  }
+
+  const role = isAdminEmail(email) ? 'admin' : 'customer';
+  db.prepare(
+    `INSERT INTO users (email, password_hash, name, role, provider, provider_id, last_login_at)
+     VALUES (?, '', ?, ?, ?, ?, datetime('now'))`,
+  ).run(email, String(name || '').trim().slice(0, 80), role, provider, providerId || '');
+
+  return findUserByEmail(email);
+}
+
 export async function setPassword(userId, password) {
   const problem = checkPasswordStrength(password);
   if (problem) throw badRequest(problem, 'weak_password');

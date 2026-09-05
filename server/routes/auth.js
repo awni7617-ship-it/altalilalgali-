@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { db } from '../db.js';
+import { config, enabledProviders } from '../config.js';
+import { db, getSetting } from '../db.js';
 import {
   SESSION_COOKIE,
   normalizeEmail,
@@ -20,6 +20,17 @@ import {
 } from '../http.js';
 
 export function registerAuthRoutes(router) {
+  /* Which sign-in buttons the login page should show. */
+  router.get('/api/auth/providers', async (req, res) => {
+    sendJson(res, 200, {
+      ok: true,
+      providers: enabledProviders(),
+      require_login: config.requireLogin,
+      shop_name_ar: getSetting('shop_name_ar'),
+      shop_name_en: getSetting('shop_name_en'),
+    });
+  });
+
   /* ---------------------------------------------------------------- *
    * Create an account
    * ---------------------------------------------------------------- */
@@ -94,7 +105,10 @@ export function registerAuthRoutes(router) {
     const next = String(body.new_password ?? '');
 
     const fresh = findUserByEmail(user.email);
-    if (!(await verifyPassword(current, fresh.password_hash))) {
+    /* Someone who signed up through Google or Apple has no password to
+     * confirm — they are setting their first one. The session already
+     * proves who they are. */
+    if (fresh.password_hash && !(await verifyPassword(current, fresh.password_hash))) {
       throw unauthorized('Your current password is not correct.');
     }
     if (current === next) throw badRequest('Please choose a different password.', 'same_password');

@@ -122,6 +122,9 @@ function addColumnIfMissing(table, column, definition) {
   }
 }
 addColumnIfMissing('users', 'password_hash', "TEXT NOT NULL DEFAULT ''");
+/* Which service someone signed in with, when it was not a password. */
+addColumnIfMissing('users', 'provider', "TEXT NOT NULL DEFAULT ''");
+addColumnIfMissing('users', 'provider_id', "TEXT NOT NULL DEFAULT ''");
 
 /* The shop used to sign people in with e-mailed codes. Nothing reads
  * this table any more, so retire it rather than leave it lying about. */

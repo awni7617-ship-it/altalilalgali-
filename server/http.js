@@ -99,6 +99,19 @@ export async function readJson(req) {
   }
 }
 
+/** Read an `application/x-www-form-urlencoded` body — Apple replies
+ *  to a sign-in with a form POST rather than a redirect. */
+export async function readForm(req) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > 256 * 1024) throw badRequest('That form submission is too large.', 'body_too_large');
+    chunks.push(chunk);
+  }
+  return Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8')));
+}
+
 export function sendJson(res, status, payload, extraHeaders = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {

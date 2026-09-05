@@ -22,6 +22,8 @@ const text = {
     owner: '👑 <strong>حساب المدير:</strong> ادخلي ببريد المالك وكلمة مروره للوصول إلى لوحة التحكم. نسيتِ كلمة المرور؟ شغّلي <code>npm run password</code> في الطرفية.',
     back_shop: '← العودة للمتجر',
     show: 'إظهار كلمة المرور', hide: 'إخفاء كلمة المرور',
+    with_google: 'المتابعة باستخدام Google', with_apple: 'المتابعة باستخدام Apple', or: 'أو',
+    social_note: 'إذا سجّلتِ عبر Google أو Apple، استخدمي الزر نفسه في كل مرة.',
   },
   en: {
     sub: 'Sign in to continue',
@@ -41,6 +43,8 @@ const text = {
     owner: '👑 <strong>Owner account:</strong> sign in with the owner e-mail and password to reach the dashboard. Forgotten it? Run <code>npm run password</code> in the terminal.',
     back_shop: '← Back to the shop',
     show: 'Show password', hide: 'Hide password',
+    with_google: 'Continue with Google', with_apple: 'Continue with Apple', or: 'or',
+    social_note: 'If you signed up with Google or Apple, use that same button each time.',
   },
 };
 const s = (key) => text[isArabic() ? 'ar' : 'en'][key] || key;
@@ -52,12 +56,82 @@ const nextUrl = (() => {
   return /^\/[A-Za-z0-9._~\-/]*$/.test(raw) ? raw : '';
 })();
 
+const ERRORS = {
+  ar: {
+    cancelled: 'تم إلغاء تسجيل الدخول.',
+    provider_off: 'طريقة الدخول هذه غير مفعّلة في المتجر.',
+    bad_state: 'انتهت صلاحية رابط الدخول. حاولي مرة أخرى.',
+    no_email: 'لم يشارك المزوّد بريدك الإلكتروني، لذلك تعذّر إنشاء الحساب.',
+    unverified_email: 'هذا البريد غير مُوثّق لدى المزوّد.',
+    provider_unreachable: 'تعذّر الاتصال بمزوّد الدخول. حاولي مرة أخرى.',
+    provider_refused: 'رفض مزوّد الدخول الطلب. تحقّقي من إعدادات المتجر.',
+    failed: 'تعذّر إتمام تسجيل الدخول. حاولي مرة أخرى.',
+  },
+  en: {
+    cancelled: 'That sign-in was cancelled.',
+    provider_off: 'That sign-in method is not switched on for this shop.',
+    bad_state: 'That sign-in link expired. Please try again.',
+    no_email: 'The provider did not share your e-mail, so no account could be made.',
+    unverified_email: 'That e-mail is not verified with the provider.',
+    provider_unreachable: 'Could not reach the sign-in provider. Please try again.',
+    provider_refused: 'The sign-in provider refused the request. Check the shop settings.',
+    failed: 'That sign-in could not be completed. Please try again.',
+  },
+};
+
 applyLanguage();
 paintText();
 wireTabs();
 wireEyes();
 wireMeter();
+showCallbackError();
+loadProviders();
 redirectIfSignedIn();
+
+/** Report anything the Google/Apple round-trip sent back. */
+function showCallbackError() {
+  const code = params.get('error');
+  if (!code) return;
+  const table = ERRORS[isArabic() ? 'ar' : 'en'];
+  const box = $('#pageError');
+  box.hidden = false;
+  box.textContent = table[code] || table.failed;
+  /* Keep it out of the address bar if they reload. */
+  history.replaceState(null, '', location.pathname + (nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : ''));
+}
+
+/** Only show the buttons the shop is actually set up for. */
+async function loadProviders() {
+  let providers = [];
+  try {
+    ({ providers } = await api.get('/api/auth/providers'));
+  } catch {
+    return;
+  }
+  if (!providers.length) return;
+
+  const carry = nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : '';
+  if (providers.includes('google')) {
+    const b = $('#googleBtn');
+    b.hidden = false;
+    b.href = `/auth/google${carry}`;
+    $('#googleLabel').textContent = s('with_google');
+  }
+  if (providers.includes('apple')) {
+    const b = $('#appleBtn');
+    b.hidden = false;
+    b.href = `/auth/apple${carry}`;
+    $('#appleLabel').textContent = s('with_apple');
+  }
+  $('#orText').textContent = s('or');
+  $('#providers').hidden = false;
+
+  /* Someone who signed up with Google has no password, so a failed
+   * password attempt would otherwise be baffling. */
+  const note = $('#socialNote');
+  note.textContent = s('social_note');
+  note.hidden = false;
+}
 
 function paintText() {
   $('#authSub').textContent = s('sub');
@@ -87,7 +161,7 @@ function paintText() {
 function destinationFor(user) {
   const wantsAdmin = /^\/admin(\.html)?(\/|$|\?)/.test(nextUrl);
   if (nextUrl && !(wantsAdmin && !user.is_admin)) return nextUrl;
-  return user.is_admin ? '/admin.html' : '/account.html';
+  return user.is_admin ? '/admin.html' : '/';
 }
 
 async function redirectIfSignedIn() {
@@ -252,8 +326,9 @@ $('#registerForm').addEventListener('submit', async (event) => {
   });
 });
 
-/* Show the shop's real name once it is known. */
-api.get('/api/shop').then(({ settings }) => {
-  const name = isArabic() ? settings.shop_name_ar : settings.shop_name_en || settings.shop_name_ar;
+/* The shop name rides along with the providers call, which works
+   before anyone has signed in. */
+api.get('/api/auth/providers').then(({ shop_name_ar, shop_name_en }) => {
+  const name = isArabic() ? shop_name_ar : (shop_name_en || shop_name_ar);
   if (name) $('#shopName').textContent = name;
 }).catch(() => {});

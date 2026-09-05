@@ -3,8 +3,7 @@
 متجر مكياج إلكتروني جاهز للعمل — واجهة عربية بالكامل، تسجيل دخول بالبريد وكلمة المرور،
 ولوحة تحكم كاملة للمالك.
 
-An online makeup shop built for Palestine: Arabic-first storefront, e-mail and password
-sign-in, and a full owner dashboard.
+An online makeup shop built for Palestine: Arabic-first storefront, e-mail and password sign-in, optional Google and Apple, and a full owner dashboard.
 
 **لا يحتاج أي مكتبات خارجية ولا بريد إلكتروني — `npm install` غير مطلوب.**
 Zero npm dependencies, and no mail service to set up. Nothing to install.
@@ -71,6 +70,80 @@ there is no e-mail to wait for and no way to get locked out permanently.
 To change or add owners, edit `ADMIN_EMAILS` in `.env` (comma-separated) and restart.
 Roles re-sync on every request, so adding or removing an address takes effect at once.
 
+---
+
+## ٣. من يرى المتجر · Who can see the shop
+
+Out of the box **nobody sees the shop until they sign in**. Visiting any page sends you
+to `/login` first.
+
+To let people browse without an account, set `REQUIRE_LOGIN=false` in `.env`. The
+dashboard still needs the owner password either way.
+
+> Requiring sign-in keeps your catalogue and prices private, but every new customer has
+> to make an account before they can buy, which does cost you some sales. Both settings
+> are one line apart — try whichever suits your shop.
+
+---
+
+## ٤. الدخول بحساب Google أو Apple · Google and Apple sign-in
+
+Both are optional. **A button only appears once you fill in its settings**, so the shop
+works with just e-mail and password until you set them up.
+
+Either way people end up in the same account: someone who signs up with a password and
+later uses Google with the same address gets their existing account, not a second one.
+
+### Google — free, about ten minutes
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and make a project.
+2. **APIs & Services → OAuth consent screen** — fill in your shop name and e-mail.
+3. **Credentials → Create credentials → OAuth client ID → Web application**.
+4. Under *Authorized redirect URIs* add exactly:
+   `https://yourdomain.com/auth/google/callback`
+5. Copy the client ID and secret into `.env`:
+
+```ini
+GOOGLE_CLIENT_ID=1234567890-abcdef.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxx
+```
+
+### Apple — needs a paid developer account
+
+**Sign in with Apple requires an Apple Developer Program membership, $99 a year.**
+There is no free tier. If you would rather not pay it, leave these blank and the Apple
+button stays hidden — Google and passwords cover everyone.
+
+If you do have the membership, at [developer.apple.com](https://developer.apple.com):
+
+1. **Identifiers → Services IDs** — create one (e.g. `com.yourshop.web`). Enable
+   *Sign in with Apple* and set the Return URL to
+   `https://yourdomain.com/auth/apple/callback`.
+2. **Keys** — create a key with *Sign in with Apple* enabled and download the `.p8`
+   file. You only get to download it once.
+3. Fill in `.env`:
+
+```ini
+APPLE_CLIENT_ID=com.yourshop.web
+APPLE_TEAM_ID=ABCDE12345
+APPLE_KEY_ID=KEY1234567
+APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIGT...\n-----END PRIVATE KEY-----"
+```
+
+### Two things that catch people out
+
+**`PUBLIC_URL` must match what you registered.** The shop builds its redirect address
+from it, and Google and Apple both reject anything that does not match character for
+character. If sign-in fails right after you set it up, this is almost always why.
+
+**Both require HTTPS in production.** Neither provider will redirect back to a plain
+`http://` address other than `localhost`.
+
+**Apple can hide the real e-mail.** If someone chooses *Hide My Email*, Apple sends a
+`@privaterelay.appleid.com` address instead. That works fine as an account, but it will
+not match `ADMIN_EMAILS` — so sign in as the owner with your password or with Google,
+not with Apple's hidden address.
+
 ### How sign-in is kept safe
 
 | Protection | What it does |
@@ -84,12 +157,14 @@ Roles re-sync on every request, so adding or removing an address takes effect at
 | Session tokens hashed | A leaked database still cannot impersonate anyone |
 | `HttpOnly` + `SameSite` + `Secure` cookies | Not readable by scripts, not sent cross-site |
 | Origin checking on writes | Blocks cross-site request forgery |
+| One-time OAuth state | Each Google/Apple sign-in carries a single-use token, so a callback cannot be replayed or forged |
+| ID token claims checked | Issuer, audience and expiry are all verified before anyone is signed in |
 | Password change ends other sessions | Signs out anyone else who had your account open |
 | Owner-only API guard | Every `/api/admin/*` route re-checks the role server-side |
 
 ---
 
-## ٣. لوحة التحكم · What the dashboard does
+## ٥. لوحة التحكم · What the dashboard does
 
 | Section | What you can do |
 |---|---|
@@ -125,7 +200,7 @@ any lockout is lifted straight away.
 
 ---
 
-## ٤. كيف يشتري الزبون · How customers order
+## ٦. كيف يشتري الزبون · How customers order
 
 1. Browse or search, filter by category, tap a product for the full details.
 2. Add to basket, adjust quantities.
@@ -145,7 +220,7 @@ pre-fills their details and lets them see past orders at `/account.html`.
 
 ---
 
-## ٥. النشر على الإنترنت · Going live
+## ٧. النشر على الإنترنت · Going live
 
 ```ini
 NODE_ENV=production
@@ -173,7 +248,7 @@ Copy both regularly. That is your whole shop.
 
 ---
 
-## ٦. بنية المشروع · Project layout
+## ٨. بنية المشروع · Project layout
 
 ```
 server/
@@ -182,6 +257,7 @@ server/
   db.js             SQLite schema, migrations, query helpers
   http.js           router, cookies, rate limiting, CSRF, static serving
   auth.js           password hashing, sessions, role guards
+  oauth.js          Google and Apple sign-in
   storage.js        photo validation and saving
   seed.js           starter categories and products
   set-password.js   the "npm run password" tool
@@ -203,7 +279,7 @@ using CSS logical properties, so there is no second stylesheet to maintain.
 
 ---
 
-## ٧. أسئلة شائعة · Troubleshooting
+## ٩. أسئلة شائعة · Troubleshooting
 
 **I lost the owner password.** `npm run password`. It sets a new one straight away.
 

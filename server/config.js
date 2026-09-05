@@ -82,6 +82,24 @@ export const config = {
    * and a strong one is generated on first start and printed once. */
   adminPassword: env.ADMIN_PASSWORD || '',
 
+  /* When true, nobody sees the shop until they sign in. */
+  requireLogin: bool(env.REQUIRE_LOGIN, true),
+
+  oauth: {
+    google: {
+      clientId: (env.GOOGLE_CLIENT_ID || '').trim(),
+      clientSecret: (env.GOOGLE_CLIENT_SECRET || '').trim(),
+    },
+    apple: {
+      /* The Services ID, not the App ID — e.g. com.yourshop.web */
+      clientId: (env.APPLE_CLIENT_ID || '').trim(),
+      teamId: (env.APPLE_TEAM_ID || '').trim(),
+      keyId: (env.APPLE_KEY_ID || '').trim(),
+      /* The contents of the .p8 file. Newlines may be written as \n. */
+      privateKey: (env.APPLE_PRIVATE_KEY || '').replace(/\\n/g, '\n').trim(),
+    },
+  },
+
   auth: {
     sessionMs: int(env.SESSION_DAYS, 30) * 24 * 60 * 60_000,
     minPasswordLength: int(env.MIN_PASSWORD_LENGTH, 8),
@@ -97,4 +115,14 @@ export const config = {
 
 export function isAdminEmail(email) {
   return config.adminEmails.includes(String(email || '').trim().toLowerCase());
+}
+
+/** Which social sign-in buttons the login page should offer. */
+export function enabledProviders() {
+  const list = [];
+  const g = config.oauth.google;
+  if (g.clientId && g.clientSecret) list.push('google');
+  const a = config.oauth.apple;
+  if (a.clientId && a.teamId && a.keyId && a.privateKey) list.push('apple');
+  return list;
 }
