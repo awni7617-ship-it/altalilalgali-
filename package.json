@@ -13,9 +13,11 @@
     "build:migration": "node scripts/build-migration.mjs",
     "artifact": "node artifact/build.mjs",
     "check": "node scripts/check.mjs",
-    "test": "node --test \"tests/**/*.test.js\""
+    "test": "node --test \"tests/**/*.test.js\"",
+    "bundle": "node scripts/build-upload.mjs"
   },
   "devDependencies": {
-    "wrangler": "^4.42.0"
+    "wrangler": "^4.42.0",
+    "esbuild": "^0.25.0"
   }
 }

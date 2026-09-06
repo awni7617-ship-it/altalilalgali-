@@ -191,11 +191,17 @@ export default {
       return json({ ok: true, database: Boolean(env.DB), time: new Date().toISOString() });
     }
 
-    // Anything else is the shop front, or a link someone pasted: hand back the
-    // shell and let the page take it from there.
+    // Anything else is a file in public/, or a link someone pasted.
+    //
+    // Ask for the file first and only fall back to the shell. Deployed as a
+    // Worker, Cloudflare serves the static files before this code ever runs —
+    // but uploaded to Pages, every request arrives here, and answering
+    // /app.css with the shell would leave the shop unstyled.
     if (env.ASSETS) {
-      const asset = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request));
-      return new Response(asset.body, { status: asset.status, headers: asset.headers });
+      const direct = await env.ASSETS.fetch(request);
+      if (direct.status !== 404) return direct;
+      const shell = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request));
+      return new Response(shell.body, { status: shell.status, headers: shell.headers });
     }
     return new Response('Not found', { status: 404 });
   },

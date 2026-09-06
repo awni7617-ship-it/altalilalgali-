@@ -8,15 +8,39 @@ Runs on Cloudflare Workers with a D1 database.
 
 ## Start here
 
+Two ways in. Both end with a public address you can send to anybody, and
+neither needs a terminal.
+
+### 1. Drag a zip onto Cloudflare — no GitHub, no account beyond Cloudflare
+
+`dar-al-kohl.zip` is the whole shop in one file: the bundled Worker, the page,
+the stylesheet, the script and the icons. Build it with `npm run bundle`, or
+use the copy you were sent.
+
+1. **dash.cloudflare.com** → **Storage & Databases** → **D1 SQL Database** →
+   **Create**. Call it `darkohl`.
+2. **Compute** → **Workers & Pages** → **Create** → **Pages** →
+   **Upload assets**. Name the project, drag the zip in, **Deploy**.
+3. The project → **Settings** → **Bindings** → **Add** → **D1 database**.
+   Variable name `DB` (those two capitals exactly), database `darkohl`. Save.
+4. **Deployments** → the one you just made → **Retry deployment**. A binding
+   only reaches a *new* deployment, so this is the step that switches the shop
+   on.
+
+You get an address ending in `.pages.dev`. The Worker builds its own tables
+and stocks the shop the first time anyone opens it.
+
+`HOW-TO-DEPLOY.txt` inside the zip says the same thing, for when this README
+is not to hand.
+
+### 2. The button, if you do use GitHub
+
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/awni7617-ship-it/altalilalgali-)
 
-One click. Cloudflare creates the database, asks for the shopkeeper's sign-in
-if you want to set it, builds and deploys. No terminal, nothing to install.
-Every later push to the default branch deploys itself.
-
-When it finishes you get a public address — something like
-`https://dar-al-kohl.<your-name>.workers.dev`. That is the shop. Send it to
-anybody.
+One click: Cloudflare creates the database, asks for the shopkeeper's sign-in
+if you want to set it, builds and deploys, and every later push to the default
+branch deploys itself. The button reads the repository's **default branch**, so
+the code has to be merged there first.
 
 **The first thing to do after it deploys** is sign in and change the password.
 The shop starts with `awni7617@gmail.com` / `123456` unless the deploy page was
@@ -67,6 +91,7 @@ to publish to: the customer's next page load reads the same database.
 | `src/lib/schema.js` | The schema, as statements the Worker can run itself. |
 | `src/lib/seed.js` | What a brand-new shop starts with. |
 | `public/` | The shop front: one page, one stylesheet, one script. |
+| `scripts/build-upload.mjs` | Bundles everything into `dar-al-kohl.zip` for the drag-and-drop deploy. |
 | `artifact/` | The older self-contained page — one HTML file, no server. See below. |
 
 Three things are true of the deploy and worth knowing:
@@ -85,6 +110,13 @@ Three things are true of the deploy and worth knowing:
 To have the deploy apply migrations before it publishes, set the Cloudflare
 build's deploy command to `npm run deploy:cf`. It is not required — see the
 first point.
+
+Uploaded to Pages rather than deployed as a Worker, two small things differ.
+`wrangler.jsonc` is ignored, so the D1 binding is the one added in the
+dashboard; and Pages has no cron, so the nightly sweep of expired sessions and
+spent throttle rows does not run. Neither affects the shop: sessions are
+checked and deleted when they are used, and the throttle rows are a handful of
+bytes each.
 
 ## The CPU budget is real, and only production enforces it
 

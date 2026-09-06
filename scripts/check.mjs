@@ -56,6 +56,11 @@ for (const file of ['public/index.html', 'public/app.css', 'public/app.js', 'pub
   if (!(await read(file))) problems.push(`${file} is missing.`);
 }
 
+/* --- and the deploy that needs no GitHub account must still be buildable --- */
+if (!(await read('scripts/build-upload.mjs'))) {
+  problems.push('scripts/build-upload.mjs is missing — there is no drag-and-drop bundle to deploy.');
+}
+
 if (problems.length) {
   console.error('check failed:\n');
   for (const p of problems) console.error(`  • ${p}`);
