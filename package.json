@@ -1,7 +1,7 @@
 {
   "name": "altalil-al-gali",
   "version": "1.0.0",
-  "description": "Al-Talil Al-Ghali — online makeup shop for Palestine, with passwordless email-code login and a full admin dashboard.",
+  "description": "Al-Talil Al-Ghali — online makeup shop for Palestine: e-mail and password sign-in with optional Google and Apple, and a full owner dashboard.",
   "private": true,
   "type": "module",
   "engines": {
