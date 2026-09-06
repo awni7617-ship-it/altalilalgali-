@@ -1,58 +1,131 @@
 # دار الكحل — Dar al-Kohl
 
-A Palestinian makeup shop that takes its orders over WhatsApp, and a locked
-back office for the shopkeeper. Arabic, right-to-left, light and dark.
+A Palestinian makeup shop: customers browse and order from their phone, the
+shopkeeper runs the whole thing from hers. Arabic, right-to-left, light and
+dark, and it installs to an iPhone Home Screen like an app.
 
-Live: <https://claude.ai/code/artifact/33da5b73-488e-4d53-acb1-4009e3b51ddd>
+Runs on Cloudflare Workers with a D1 database.
 
-## What is here
+## Start here
 
-| File | What it is |
-| --- | --- |
-| `store.html` | The page. This is the source of truth and the file published to the Artifact. |
-| `index.html` | **Generated.** The same page as a complete document — open it by double-clicking, or serve it from GitHub Pages. |
-| `build.mjs` | Makes `index.html` out of `store.html`. Run `node build.mjs` after editing. |
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/awni7617-ship-it/altalilalgali-)
 
-Edit `store.html`, never `index.html` — the next build overwrites it.
+One click. Cloudflare creates the database, asks for the shopkeeper's sign-in
+if you want to set it, builds and deploys. No terminal, nothing to install.
+Every later push to the default branch deploys itself.
 
-## The shop
+When it finishes you get a public address — something like
+`https://dar-al-kohl.<your-name>.workers.dev`. That is the shop. Send it to
+anybody.
 
-Customers browse, search, filter by section, sort, and fill a basket that
-survives closing the tab. Checkout collects a name, phone, city and address
-and hands the whole order to WhatsApp as a ready message; payment is on
-delivery. Products with no photograph get a mother-of-pearl wash keyed to
-their own id, so the grid still reads as a designed set.
+**The first thing to do after it deploys** is sign in and change the password.
+The shop starts with `awni7617@gmail.com` / `123456` unless the deploy page was
+given something else, and it is on the open internet. The back office says so
+in orange until it is changed.
 
-## The back office
+### On an iPhone
 
-There is no "admin" button on the shop — a customer sees a shop and nothing
-else. The way in is the small ◆ at the bottom of the footer (tapping the
-monogram in the header five times does the same), which opens a plain sign-in
-sheet: email, password, nothing else on the screen.
+Open the address in Safari, press Share, then **Add to Home Screen**. It opens
+without Safari's chrome, keeps its own icon, and behaves like an app. The
+checkout, the photographs and the back office all work the same there — the
+shop is the same shop on every device, because the stock lives in the database
+rather than in one browser.
 
+## What it does
+
+**For a customer.** Browse by section, search, sort by price or by discount,
+fill a basket that survives closing the tab, and check out with a name, phone,
+city and address. Payment is on delivery. The order is recorded in the shop
+straight away, and WhatsApp opens with the same order written out, so there is
+a copy in the thread too.
+
+**For the shopkeeper.** The way in is the small ◆ at the bottom of the footer,
+or five taps on the monogram in the header — there is no "admin" button for a
+customer to find, and the sign-in screen says nothing about what is behind it.
 Signed in, the header turns black so the mode is never in doubt, and the shop
-becomes a workspace: stock value at retail and at cost, projected profit, a
-count of what needs attention, and a list of everything down to three pieces
-or fewer. Products are added, edited, hidden and deleted from the same grid.
-Nothing is public until **حفظ التغييرات** is pressed, which republishes the
-page for everyone holding the link.
+becomes a workspace:
 
-### Credentials
+- Stock at retail and at cost, projected profit, and what needs attention.
+- Every order, with one button to move it along. **Confirming an order takes
+  the pieces off the shelf**, once; cancelling a confirmed one puts them back.
+- Products added, edited, hidden and deleted from the same grid, with up to six
+  photographs each, resized in the browser before they are uploaded.
+- Shop settings — name, tagline, WhatsApp number, delivery charge, free-delivery
+  threshold, the dollar rate the profit is worked out from.
 
-The page stores only a salted SHA-256 digest of `email:password` — neither the
-address nor the password appears in the source. Change them under
-**الإعدادات → بيانات الدخول** by filling in all three fields.
+Everything saves as you go. There is no publish step, because there is nothing
+to publish to: the customer's next page load reads the same database.
 
-The password gate is a courtesy lock on the interface. The real protection is
-the Artifact platform: saving calls `publish`, which only the artifact's owner
-account may do, so a signed-in stranger would see the workspace and have every
-save refused.
+## How it is put together
 
-## Notes
+| Path | What it is |
+| --- | --- |
+| `src/worker.js` | The router. The API under `/api`, photographs under `/photo`, everything else falls through to the shop front. |
+| `src/api.js` | The routes. What a customer may read and do, and what needs a session. |
+| `src/session.js` | Accounts, cookies and sign-in throttling. |
+| `src/lib/model.js` | Validation and the money maths — what a price and a margin *mean*. |
+| `src/lib/schema.js` | The schema, as statements the Worker can run itself. |
+| `src/lib/seed.js` | What a brand-new shop starts with. |
+| `public/` | The shop front: one page, one stylesheet, one script. |
+| `artifact/` | The older self-contained page — one HTML file, no server. See below. |
 
-- `index.html` opened from disk has no `publish`, so the back office there is
-  read-only by design — the save bar says so.
-- Fonts come from Google Fonts (Reem Kufi, Almarai, IBM Plex Mono) and fall
-  back to system faces offline.
-- Product photographs are resized in the browser to 760px JPEG before they are
-  stored in the page, to keep it small enough to republish.
+Three things are true of the deploy and worth knowing:
+
+- **The Worker builds its own tables.** The one-click flow provisions an empty
+  database and never runs wrangler's migrations, so a Worker that assumed a
+  migrated schema would arrive broken. This one creates what is missing on
+  first sight and stocks the shop.
+- **`migrations/0001_init.sql` is generated** from `src/lib/schema.js` by
+  `npm run build:migration`. `npm run check` fails if the committed copy has
+  drifted, because a stale migration is the dangerous one.
+- **`wrangler.jsonc` has no `database_id`.** That is deliberate: the deploy
+  flow creates the database and binds it. A placeholder there does not defer
+  the decision, it guarantees a failed deploy.
+
+To have the deploy apply migrations before it publishes, set the Cloudflare
+build's deploy command to `npm run deploy:cf`. It is not required — see the
+first point.
+
+## The CPU budget is real, and only production enforces it
+
+A Worker on the free plan gets **10ms of CPU per request**, and neither Node
+nor `wrangler dev` enforces it. Password hashing is the thing that runs into
+it: 210,000 PBKDF2 rounds cost about 30ms, which kills every sign-in while
+every test passes. This shop hashes at 12,000 rounds — about 6ms on the
+slowest machine it has been built on — and `tests/domain.test.js` holds that
+line.
+
+That is weaker than OWASP would like, and it is a deliberate trade: a sign-in
+that always fails protects nothing. Sign-in is throttled per IP to make up some
+of the difference, and `PBKDF2_ITERATIONS` raises the count on a paid plan.
+Accounts made under the old number keep working — each stored hash remembers
+its own count.
+
+## Working on it
+
+```
+npm install
+npm run dev        # wrangler dev, with a local D1
+npm test           # the API end to end through the real Worker
+npm run check      # rebuilds what is generated, fails if it drifted
+```
+
+`npm test` runs against an in-memory SQLite standing in for D1, using the same
+migration SQL that ships. `DARKOHL_SCHEMA=<file> npm test` runs it against a
+schema dumped from a live database instead — the way to prove that what is
+*deployed* still satisfies the app.
+
+Before saying a change works, check it against the running thing. The CPU
+limit and an unmigrated database are both invisible locally.
+
+## The single-file version
+
+`artifact/` holds the earlier build: the whole shop in one HTML file, with the
+catalogue written into the page. It needs no server and no deploy, and it is
+still the right answer for handing someone a shop on a USB stick. It does not
+share this one's database, so the two do not stay in step — the Worker is the
+real shop now.
+
+```
+node artifact/build.mjs     # regenerates artifact/index.html from store.html
+```

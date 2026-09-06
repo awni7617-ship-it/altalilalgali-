@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  "name": "dar-al-kohl",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-08-01",
+
+  // The shop front is static, so Cloudflare serves it from the edge and the
+  // Worker never sees those requests. Anything unmatched falls through to the
+  // Worker, which hands back the shell.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  // No database_id on purpose. The Deploy to Cloudflare button creates the
+  // database and binds it during the deploy — that is the one-click path, and
+  // it is why there is no placeholder here to fail on. Deploying from a
+  // terminal into an existing database instead? Put its id in this block.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "darkohl",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Nightly sweep of expired sessions and stale sign-in attempts.
+  "triggers": {
+    "crons": ["23 3 * * *"]
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

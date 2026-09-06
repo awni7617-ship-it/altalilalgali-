@@ -1,0 +1,22 @@
+# Cloudflare serves everything in public/ from the edge; these say how long for.
+
+/app.css
+  cache-control: public, max-age=300, must-revalidate
+
+/app.js
+  cache-control: public, max-age=300, must-revalidate
+
+/favicon.svg
+  cache-control: public, max-age=604800
+
+/apple-touch-icon.png
+  cache-control: public, max-age=604800
+
+/manifest.webmanifest
+  cache-control: public, max-age=3600
+
+# The shell carries no data of its own, but it must never be a stale shell.
+/index.html
+  cache-control: no-cache
+  x-content-type-options: nosniff
+  referrer-policy: strict-origin-when-cross-origin

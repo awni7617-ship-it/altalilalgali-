@@ -1,0 +1,16 @@
+# دار الكحل — settings the deploy page asks for.
+#
+# Everything here is optional: leave a line blank and the shop still deploys
+# and runs. Copy this file to .dev.vars to set them for `npm run dev`.
+
+# The shopkeeper's sign-in, created the first time the shop starts.
+# Leave these blank and the shop starts with awni7617@gmail.com / 123456 —
+# which is fine for a first look, but the shop is on the open internet, so
+# change the password under الإعدادات once you are in.
+OWNER_EMAIL=
+OWNER_PASSWORD=
+
+# Password hashing rounds. 25000 fits inside the 10ms of CPU a Worker gets on
+# the free plan. Raise it on a paid plan; accounts made under the old number
+# keep working, because each stored hash remembers its own count.
+PBKDF2_ITERATIONS=

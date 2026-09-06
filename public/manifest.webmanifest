@@ -1,0 +1,17 @@
+{
+  "name": "دار الكحل",
+  "short_name": "دار الكحل",
+  "description": "مستحضرات تجميل أصلية — توصيل لكل مدن فلسطين، والدفع عند الاستلام.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eff2f1",
+  "theme_color": "#eff2f1",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
