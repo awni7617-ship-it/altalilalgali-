@@ -40,12 +40,13 @@ export function readCookie(request) {
   return match ? match[1] : null;
 }
 
-/** The signed-in shopkeeper, or null. Expired sessions are swept on sight. */
+/** Whoever is signed in — shopkeeper or customer. Expired sessions are swept. */
 export async function currentUser(env, request) {
   const id = readCookie(request);
   if (!id) return null;
   const row = await env.DB.prepare(
-    `SELECT u.id, u.email, u.password, s.expires_at
+    `SELECT u.id, u.role, u.name, u.email, u.password, u.phone, u.city, u.address, u.lang,
+            s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id = ?`,
   ).bind(id).first();
@@ -54,7 +55,35 @@ export async function currentUser(env, request) {
     await env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(id).run();
     return null;
   }
-  return { id: row.id, email: row.email, password: row.password, session_id: id };
+  return {
+    id: row.id,
+    role: row.role,
+    name: row.name,
+    email: row.email,
+    password: row.password,
+    phone: row.phone,
+    city: row.city,
+    address: row.address,
+    lang: row.lang,
+    session_id: id,
+    owner: row.role === 'owner',
+  };
+}
+
+/** What the page is allowed to know about whoever is signed in. */
+export function publicUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    role: user.role,
+    owner: user.owner,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    city: user.city,
+    address: user.address,
+    lang: user.lang,
+  };
 }
 
 /**

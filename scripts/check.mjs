@@ -61,6 +61,15 @@ if (!(await read('scripts/build-upload.mjs'))) {
   problems.push('scripts/build-upload.mjs is missing — there is no drag-and-drop bundle to deploy.');
 }
 
+/* --- English has to actually read left to right --- */
+// `html { direction: rtl }` in an author stylesheet beats the dir attribute, so
+// without a matching LTR rule the English side keeps Arabic direction and its
+// full stops come out on the wrong side. No unit test can see that; this can.
+const css = await read('public/app.css');
+if (css && /html\s*\{[^}]*direction:\s*rtl/.test(css) && !/html\[dir="ltr"\]\s*\{[^}]*direction:\s*ltr/.test(css)) {
+  problems.push('public/app.css forces direction: rtl with no html[dir="ltr"] override — English will render right-to-left.');
+}
+
 if (problems.length) {
   console.error('check failed:\n');
   for (const p of problems) console.error(`  • ${p}`);
