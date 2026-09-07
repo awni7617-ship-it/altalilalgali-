@@ -1,0 +1,28 @@
+# ==================================================================
+#  Cloudflare settings for Al-Talil Al-Ghali
+#
+#  "npm run setup" fills in the database id for you.
+# ==================================================================
+
+name = "altalil-shop"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "public"
+
+# The database — products, orders, customers, settings.
+[[d1_databases]]
+binding = "DB"
+database_name = "altalil-shop-db"
+database_id = "PUT_YOUR_DATABASE_ID_HERE"
+
+# Where product photos are stored.
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "altalil-shop-photos"
+
+# Settings that are not secret. The secret ones — ADMIN_PASSWORD,
+# SECRET_KEY, and the Google/Apple keys — go in the Cloudflare
+# dashboard under Settings → Variables and Secrets, never in here.
+[vars]
+REQUIRE_LOGIN = "true"
+ADMIN_EMAILS = "carsyardltd@icloud.com"

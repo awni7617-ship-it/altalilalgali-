@@ -135,7 +135,7 @@ async function boot() {
 
   try {
     const { user } = await api.get('/api/auth/me');
-    if (!user) return location.replace('/login.html?next=/admin.html');
+    if (!user) return location.replace('/login?next=/admin');
     if (!user.is_admin) {
       toast(isArabic() ? 'هذه الصفحة للمدير فقط' : 'This page is for the owner only', 'bad');
       return setTimeout(() => location.replace('/'), 1200);
@@ -143,7 +143,7 @@ async function boot() {
     state.user = user;
     $('#whoAmI').textContent = `${s('signed_as')} ${user.email}`;
   } catch {
-    return location.replace('/login.html?next=/admin.html');
+    return location.replace('/login?next=/admin');
   }
 
   const [{ categories }, { settings }] = await Promise.all([

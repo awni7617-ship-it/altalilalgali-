@@ -143,19 +143,19 @@ function paintAccountButton() {
   const label = $('#accountLabel');
 
   if (!state.user) {
-    button.href = '/login.html';
+    button.href = '/login';
     icon.textContent = '👤';
     label.textContent = t('login');
     button.title = t('login');
     return;
   }
   if (state.user.is_admin) {
-    button.href = '/admin.html';
+    button.href = '/admin';
     icon.textContent = '👑';
     label.textContent = t('admin_panel');
     button.title = t('admin_panel');
   } else {
-    button.href = '/account.html';
+    button.href = '/account';
     icon.textContent = '👤';
     label.textContent = t('account');
     button.title = t('account');

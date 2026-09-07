@@ -1,19 +1,18 @@
 {
   "name": "altalil-al-gali",
   "version": "1.0.0",
-  "description": "Al-Talil Al-Ghali — online makeup shop for Palestine: e-mail and password sign-in with optional Google and Apple, and a full owner dashboard.",
+  "description": "Al-Talil Al-Ghali — online makeup shop for Palestine, running entirely on Cloudflare Pages, D1 and R2.",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22.5.0"
-  },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning server/index.js",
-    "dev": "NODE_ENV=development node --disable-warning=ExperimentalWarning --watch server/index.js",
-    "seed": "node --disable-warning=ExperimentalWarning server/seed.js",
-    "reset": "node --disable-warning=ExperimentalWarning server/seed.js --reset",
-    "secret": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\"",
-    "password": "node --disable-warning=ExperimentalWarning server/set-password.js"
+    "dev": "wrangler pages dev --local --port 3000",
+    "db:local": "wrangler d1 execute altalil-shop-db --local --file=./schema.sql",
+    "db:remote": "wrangler d1 execute altalil-shop-db --remote --file=./schema.sql",
+    "deploy": "wrangler pages deploy",
+    "secret": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^4.129.1"
+  }
 }

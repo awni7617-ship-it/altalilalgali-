@@ -166,7 +166,7 @@ function paintText() {
 function destinationFor(user) {
   const wantsAdmin = /^\/admin(\.html)?(\/|$|\?)/.test(nextUrl);
   if (nextUrl && !(wantsAdmin && !user.is_admin)) return nextUrl;
-  return user.is_admin ? '/admin.html' : '/';
+  return user.is_admin ? '/admin' : '/';
 }
 
 async function redirectIfSignedIn() {

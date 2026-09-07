@@ -64,9 +64,9 @@ async function boot() {
   try {
     const result = await api.get('/api/auth/me');
     user = result.user;
-    if (!user) return location.replace('/login.html?next=/account.html');
+    if (!user) return location.replace('/login?next=/account');
   } catch {
-    return location.replace('/login.html?next=/account.html');
+    return location.replace('/login?next=/account');
   }
 
   api.get('/api/shop').then(({ settings }) => {
@@ -83,7 +83,7 @@ async function boot() {
     </div>
 
     ${user.is_admin
-      ? `<a class="btn" href="/admin.html" style="margin-bottom:18px;">👑 ${s('admin_area')}</a>`
+      ? `<a class="btn" href="/admin" style="margin-bottom:18px;">👑 ${s('admin_area')}</a>`
       : ''}
 
     <div class="section-card">
