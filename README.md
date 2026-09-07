@@ -254,31 +254,78 @@ pre-fills their details and lets them see past orders at `/account.html`.
 
 ## ٧. النشر على الإنترنت · Going live
 
-```ini
-NODE_ENV=production
-PUBLIC_URL=https://yourdomain.com
-SECRET_KEY=<paste the output of: npm run secret>
+Your shop needs a host that runs **Node**. Cloudflare Pages and Workers cannot run it
+— they serve static files and edge functions, and this app is a real server with a
+database, sessions and file uploads.
+
+The usual arrangement is **Cloudflare in front, Node host behind**: your domain, SSL,
+CDN and DDoS protection stay on Cloudflare, and the shop itself runs on Railway,
+Render, Fly.io or a small VPS.
+
+### Step 1 — deploy the shop
+
+Connect your GitHub repository to [Railway](https://railway.app) or
+[Render](https://render.com) and pick this branch. Neither needs a build command;
+the start command is:
+
+```bash
+npm start
 ```
 
-`SECRET_KEY` matters: without it a new random key is generated on every restart, which
-signs everybody out each time the server restarts.
+### Step 2 — add a volume, before anything else
 
-Run the server behind a reverse proxy (Nginx, Caddy) with **HTTPS**. Secure cookies
-require it, and so does sending passwords safely. Any host that runs Node works — a small
-VPS, Railway, Render, Fly.io.
+**Both hosts wipe the filesystem on every deploy.** Your database and product photos
+live on disk, so without a volume a redeploy erases every order, customer and photo.
 
-Keep the process alive with `pm2`, `systemd`, or your host's own restart policy.
+- **Railway**: your service → *Variables* → *Volumes* → add one mounted at `/data`
+- **Render**: your service → *Disks* → add one mounted at `/data` (needs a paid instance)
+
+Then set `DATA_DIR` and `UPLOAD_DIR` to point inside it (below).
+
+### Step 3 — environment variables
+
+Set these in the host's dashboard, not in a file:
+
+| Variable | Value |
+|---|---|
+| `PUBLIC_URL` | `https://yourdomain.com` — must match your real address exactly |
+| `SECRET_KEY` | the output of `npm run secret`, run once on your computer |
+| `ADMIN_PASSWORD` | pick your own owner password, so you never have to dig it out of the deploy logs |
+| `DATA_DIR` | `/data/db` |
+| `UPLOAD_DIR` | `/data/uploads` |
+| `NODE_ENV` | `production` |
+
+`PORT` is set by the host automatically — leave it alone.
+
+### Step 4 — point Cloudflare at it
+
+Your host gives you an address like `altalil.up.railway.app`. In the Cloudflare
+dashboard, under **DNS** for your domain, add:
+
+| Type | Name | Target | Proxy |
+|---|---|---|---|
+| CNAME | `@` | `altalil.up.railway.app` | Proxied (orange cloud) |
+| CNAME | `www` | `altalil.up.railway.app` | Proxied (orange cloud) |
+
+Then in **SSL/TLS**, set the encryption mode to **Full (strict)**. Anything less and
+Cloudflare talks to your host unencrypted, which would break secure cookies.
+
+Add the same domain in your host's custom-domain settings so it answers to it.
+
+### Step 5 — first sign-in
+
+Open `https://yourdomain.com` and sign in with the owner e-mail and the
+`ADMIN_PASSWORD` you chose. If you did not set one, the generated password is in
+the host's deploy logs, printed once at first start.
 
 ### Backups
 
-Everything lives in two places:
+Everything that matters is in the volume you mounted:
 
-- `data/shop.db` — products, orders, customers, settings
-- `public/uploads/` — product photos
+- `/data/db/shop.db` — products, orders, customers, settings
+- `/data/uploads/` — product photos
 
 Copy both regularly. That is your whole shop.
-
----
 
 ## ٨. بنية المشروع · Project layout
 

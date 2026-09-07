@@ -52,8 +52,13 @@ if (secretKey.length < 32) {
   secretIsEphemeral = true;
 }
 
-const dataDir = path.join(ROOT, 'data');
-const uploadDir = path.join(ROOT, 'public', 'uploads');
+/* Where the shop keeps everything it cannot afford to lose.
+ *
+ * Hosts like Railway and Render wipe the filesystem on every deploy,
+ * so both of these need to point at a mounted volume there — otherwise
+ * a redeploy takes the orders and the product photos with it. */
+const dataDir = path.resolve(ROOT, env.DATA_DIR || path.join(ROOT, 'data'));
+const uploadDir = path.resolve(ROOT, env.UPLOAD_DIR || path.join(ROOT, 'public', 'uploads'));
 for (const dir of [dataDir, uploadDir]) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 }

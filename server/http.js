@@ -269,11 +269,18 @@ const MIME = {
 export function serveStatic(req, res, pathname) {
   const decoded = decodeURIComponent(pathname);
   const relative = decoded === '/' ? '/index.html' : decoded;
-  const target = path.join(config.publicDir, relative);
 
-  /* Never let a path escape the public directory. */
+  /* Product photos may live on a mounted volume outside the site, so
+   * /uploads is resolved against its own configured directory. */
+  const underUploads = relative === '/uploads' || relative.startsWith('/uploads/');
+  const root = underUploads ? config.uploadDir : config.publicDir;
+  const target = underUploads
+    ? path.join(root, relative.slice('/uploads'.length))
+    : path.join(root, relative);
+
+  /* Never let a path escape the directory it belongs to. */
   const resolved = path.resolve(target);
-  if (resolved !== config.publicDir && !resolved.startsWith(config.publicDir + path.sep)) {
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) {
     return false;
   }
   if (!existsSync(resolved)) return false;
@@ -281,7 +288,7 @@ export function serveStatic(req, res, pathname) {
   if (!stat.isFile()) return false;
 
   const ext = path.extname(resolved).toLowerCase();
-  const isUpload = resolved.startsWith(path.join(config.publicDir, 'uploads') + path.sep);
+  const isUpload = underUploads;
   const etag = `W/"${stat.size}-${Math.floor(stat.mtimeMs)}"`;
 
   if (req.headers['if-none-match'] === etag) {
