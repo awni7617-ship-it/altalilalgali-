@@ -5,7 +5,7 @@
    put the security headers on whatever goes out.
    ================================================================== */
 import { SESSION_COOKIE, readCookie } from './lib/http.js';
-import { getSessionUser } from './lib/auth.js';
+import { getSessionUser, sessionToken } from './lib/auth.js';
 
 /* Reachable without signing in, so the login page can load and work. */
 const OPEN_PAGES = new Set(['/login', '/login.html']);
@@ -51,7 +51,7 @@ export async function onRequest(context) {
     let user = null;
     if (env.DB) {
       try {
-        user = await getSessionUser(env.DB, env, readCookie(request, SESSION_COOKIE));
+        user = await getSessionUser(env.DB, env, sessionToken(request, readCookie(request, SESSION_COOKIE)));
       } catch {
         user = null;
       }

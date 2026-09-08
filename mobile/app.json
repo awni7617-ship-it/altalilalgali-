@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "الطليل الغالي",
+    "slug": "altalil-shop",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "altalil",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4a1528"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.altalil.shop",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.altalil.shop",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#4a1528"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The shop owner picks product photos from your library.",
+          "cameraPermission": "The shop owner photographs products to add to the shop."
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://altalil-shop.pages.dev",
+      "router": {}
+    }
+  }
+}

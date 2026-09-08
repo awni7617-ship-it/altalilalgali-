@@ -259,6 +259,19 @@ export async function createSession(db, env, userId, { ip = '', userAgent = '' }
   return token;
 }
 
+/**
+ * The session token, from wherever this client keeps it.
+ *
+ * Browsers use the cookie. The phone app sends a bearer token instead:
+ * cookie handling on a native client is unreliable, and a token it
+ * stores in the device keychain is both simpler and safer.
+ */
+export function sessionToken(request, cookieValue) {
+  const header = request.headers.get('Authorization') || '';
+  if (header.startsWith('Bearer ')) return header.slice(7).trim();
+  return cookieValue || '';
+}
+
 export async function getSessionUser(db, env, token) {
   if (!token) return null;
   const row = await db

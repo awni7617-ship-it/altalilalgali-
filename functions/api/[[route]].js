@@ -9,7 +9,7 @@ import {
 import {
   SESSION_MS, normalizeEmail, assertValidEmail, createUser, authenticate, setPassword,
   verifyPassword, findUserByEmail, createSession, destroySession, destroyAllSessions,
-  publicUser, requireUser, requireAdmin, getSessionUser, ensureOwner, isAdminEmail,
+  publicUser, requireUser, requireAdmin, getSessionUser, ensureOwner, isAdminEmail, sessionToken,
 } from '../lib/auth.js';
 import {
   DEFAULT_SETTINGS, getSettings, setSetting, listProducts, getProduct, listCategories,
@@ -80,7 +80,7 @@ routes.post('auth/register', async ({ db, env, request }) => {
     ip: clientIp(request), userAgent: request.headers.get('User-Agent') || '',
   });
   return withCookie(
-    json({ ok: true, user: publicUser(user) }, 201),
+    json({ ok: true, user: publicUser(user), token }, 201),
     cookieHeader(request, SESSION_COOKIE, token, SESSION_MS),
   );
 });
@@ -104,7 +104,7 @@ routes.post('auth/login', async ({ db, env, request }) => {
     ip: clientIp(request), userAgent: request.headers.get('User-Agent') || '',
   });
   return withCookie(
-    json({ ok: true, user: publicUser(user) }),
+    json({ ok: true, user: publicUser(user), token }),
     cookieHeader(request, SESSION_COOKIE, token, SESSION_MS),
   );
 });
@@ -699,7 +699,7 @@ export async function onRequest(context) {
     const segments = Array.isArray(params.route) ? params.route : (params.route ? [params.route] : []);
     const key = `${request.method} ${segments.join('/')}`;
 
-    const token = readCookie(request, SESSION_COOKIE);
+    const token = sessionToken(request, readCookie(request, SESSION_COOKIE));
     let user = null;
     try {
       user = await getSessionUser(db, env, token);
