@@ -12,8 +12,8 @@ echo   Only needed when your phone says:
 echo   "You're signed in to Expo Go as ..., but not signed
 echo    in to Expo CLI."
 echo.
-echo   Use the same account you are signed in to on the phone.
-echo   The password will not appear as you type it. That is normal.
+echo   Signing OUT of Expo Go on the phone works just as well
+echo   and needs none of this.
 echo.
 
 where node >nul 2>nul
@@ -32,20 +32,76 @@ call npm install
 if errorlevel 1 ( echo   Install failed. & pause & exit /b 1 )
 :haveModules
 
+echo   Use the same account you are signed in to on the phone.
+echo   The password will not appear as you type it. That is normal.
+echo.
+
 call npx expo login
 
-echo.
 set "WHO="
 for /f "usebackq tokens=*" %%a in (`node scripts\expo-session.mjs 2^>nul`) do set "WHO=%%a"
-if defined WHO goto signedIn
-echo   Not signed in. Check the e-mail and password and try again,
-echo   or sign out of Expo Go on the phone instead - a signed-out
-echo   Expo Go opens the app without any of this.
-goto done
-:signedIn
+if not defined WHO goto tryToken
+echo.
 echo   Signed in as %WHO%.
 echo   Now start the app again and scan the QR code.
-:done
+echo.
+pause
+exit /b 0
 
+:tryToken
+REM An account made with Google, Apple or GitHub has no password to type,
+REM and one with two-factor turned on cannot be signed in this way either.
+REM An access token is the way in for both, and for a forgotten password.
+echo.
+echo   ---------------------------------------------
+echo    That did not sign you in.
+echo.
+echo    If you made your Expo account with Google, Apple or
+echo    GitHub, there is no password to type - use a token:
+echo.
+echo      1. Go to  https://expo.dev/settings/access-tokens
+echo      2. Press 'Create token', copy what it gives you.
+echo      3. Paste it below and press Enter.
+echo.
+echo    Or press Enter on its own to skip, and sign out of
+echo    Expo Go on the phone instead.
+echo   ---------------------------------------------
+echo.
+
+set "TOKEN="
+set /p "TOKEN=  Token (or Enter to skip): "
+if not defined TOKEN goto skipped
+
+REM Kept beside the app rather than in a system setting, so START-APP can
+REM find it and so deleting the file is all it takes to undo. Git ignores
+REM it; it is a credential and does not belong in the project.
+REM Redirection first, so a space before the ">" is not written into
+REM the file along with the token.
+>expo-token.txt echo %TOKEN%
+set "TOKEN="
+
+set "EXPO_TOKEN="
+for /f "usebackq tokens=*" %%a in (`type expo-token.txt`) do set "EXPO_TOKEN=%%a"
+set "WHO="
+for /f "usebackq tokens=*" %%a in (`node scripts\expo-session.mjs 2^>nul`) do set "WHO=%%a"
+if not defined WHO goto badToken
+echo.
+echo   Token saved (%WHO%). Start the app again and scan the QR code.
+echo.
+pause
+exit /b 0
+
+:badToken
+echo.
+echo   Saved, but it does not look like a token. Check you copied
+echo   all of it, or sign out of Expo Go on the phone instead.
+echo.
+pause
+exit /b 0
+
+:skipped
+echo.
+echo   Skipped. Sign out of Expo Go on the phone and the app
+echo   will open without any of this.
 echo.
 pause

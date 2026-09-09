@@ -83,6 +83,13 @@ echo   Shop:  the published one in app.json
 echo          ^(start START-SHOP first to use the one on this computer^)
 :haveShop
 
+REM An access token saved by LOG-IN-TO-EXPO, for an Expo account made with
+REM Google, Apple or GitHub - those have no password for "expo login" to
+REM take. Git ignores the file; it is a credential.
+if not exist expo-token.txt goto noToken
+for /f "usebackq tokens=*" %%a in (`type expo-token.txt`) do set "EXPO_TOKEN=%%a"
+:noToken
+
 REM A phone signed in to Expo Go will not open a dev server whose computer
 REM is signed out - it refuses with "not signed in to Expo CLI". Saying so
 REM here beats letting the phone be the one to break the news.

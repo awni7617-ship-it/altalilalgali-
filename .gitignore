@@ -5,6 +5,7 @@ node_modules/
 *.log
 .DS_Store
 .shop-starting
+mobile/expo-token.txt
 mobile/node_modules/
 mobile/.expo/
 mobile/dist/

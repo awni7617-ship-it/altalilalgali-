@@ -51,6 +51,15 @@ side of the mismatch can be fixed:
 - **Or sign the phone out** — in Expo Go, open the account tab and log out. A
   signed-out Expo Go opens any dev server it is pointed at.
 
+`npx expo login` only takes an e-mail and a password, so it cannot sign in an
+account made with **Google, Apple or GitHub** — there is no password to type —
+or one with two-factor turned on. For those, `LOG-IN-TO-EXPO` offers an access
+token instead: create one at
+[expo.dev/settings/access-tokens](https://expo.dev/settings/access-tokens) and
+paste it in. It is saved as `expo-token.txt` next to the app, which `START-APP`
+reads on the way up. That file is a credential — git ignores it, and deleting it
+is all it takes to sign the computer back out.
+
 `START-APP` prints which way round this computer is before it starts, so the
 phone is not the first to tell you.
 
@@ -161,6 +170,7 @@ Because you sell physical goods delivered to a customer, Apple's 30% commission 
 | Screen | What it does |
 |---|---|
 | Sign in | Sign in or create an account; the session is kept in the device keychain |
+| **Language** | Arabic and English, switched from the sign-in screen, the shop header or My account — the whole app turns round with it |
 | Shop | Product grid, categories, search, pull to refresh |
 | Product | Photo carousel, description, stock, quantity picker |
 | Basket | Kept on the device, survives closing the app |

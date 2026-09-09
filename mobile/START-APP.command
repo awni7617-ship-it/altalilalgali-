@@ -79,6 +79,14 @@ else
   echo "         (start START-SHOP first to use the one on this computer)"
 fi
 
+# An access token saved by LOG-IN-TO-EXPO, for an Expo account made with
+# Google, Apple or GitHub — those have no password for `expo login` to
+# take. Git ignores the file; it is a credential.
+if [ -f expo-token.txt ]; then
+  EXPO_TOKEN=$(tr -d ' \t\r\n' < expo-token.txt)
+  [ -n "$EXPO_TOKEN" ] && export EXPO_TOKEN
+fi
+
 # A phone signed in to Expo Go will not open a dev server whose computer
 # is signed out — it refuses with "not signed in to Expo CLI". Saying so
 # here beats letting the phone be the one to break the news.
