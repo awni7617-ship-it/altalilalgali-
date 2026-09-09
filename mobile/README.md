@@ -20,8 +20,14 @@ No Apple account needed for this part.
 
    *(On a Mac the first time, if it says the file can't be opened —
    right-click it, choose **Open**, then **Open** again.)*
-3. A QR code appears in the window that opens. Open the iPhone **Camera**
-   and point it at the code, then tap the banner.
+3. **A browser page opens with the QR code.** Point the iPhone **Camera** at it
+   and tap the banner.
+
+   The QR code is drawn in the browser rather than only in the black window,
+   because the Windows console draws Expo's terminal QR as blanks — the code is
+   there, but a camera has nothing to read. The same page also shows an
+   `exp://…` address: in Expo Go, **Enter URL manually** and that address do the
+   same job as scanning.
 
 Your phone and the computer must be on the same WiFi. The app opens on your
 phone; edit a file and it reloads instantly.

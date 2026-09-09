@@ -48,22 +48,19 @@ else
 fi
 
 echo ""
-echo "  ---------------------------------------------"
-echo "   A QR code appears below, after about a minute."
-echo "   Point your iPhone CAMERA at it, then tap the banner."
-echo ""
 if [ -n "$LANIP" ]; then
-  echo "   NO QR CODE, or it will not scan?"
-  echo "   Open Expo Go on the iPhone, tap 'Enter URL manually',"
-  echo "   and type this — it does the same thing:"
+  echo "  Opening the QR code in your browser…"
+  node scripts/show-qr.mjs "exp://$LANIP:8081"
   echo ""
-  echo "        exp://$LANIP:8081"
-  echo ""
+  echo "  Scan it from that browser page with the iPhone Camera."
 else
-  echo "   No QR code? Expo also prints an exp:// address below."
-  echo "   Type that into 'Enter URL manually' in Expo Go."
-  echo ""
+  echo "  Your WiFi address could not be worked out, so look for the"
+  echo "  line below that starts with exp:// and type it into Expo Go"
+  echo "  under 'Enter URL manually'."
 fi
+
+echo ""
+echo "  ---------------------------------------------"
 echo "   Phone and computer must be on the same WiFi."
 echo "   Ctrl+C stops it. This window must stay open."
 echo "  ---------------------------------------------"
