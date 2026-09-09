@@ -14,16 +14,27 @@ are the same everywhere. Change a price in the app and the website shows it inst
 No Apple account needed for this part.
 
 1. Install **Expo Go** from the App Store on your iPhone.
-2. On your computer, in this `mobile` folder:
+2. On your computer, open this `mobile` folder and **double-click**:
+   - **`START-APP.command`** on a Mac
+   - **`START-APP.bat`** on Windows
+
+   *(On a Mac the first time, if it says the file can't be opened —
+   right-click it, choose **Open**, then **Open** again.)*
+3. A QR code appears in the window that opens. Open the iPhone **Camera**
+   and point it at the code, then tap the banner.
+
+Your phone and the computer must be on the same WiFi. The app opens on your
+phone; edit a file and it reloads instantly.
+
+Nothing in the folder shows the QR code on its own — it only appears once one
+of those two files is running. Leave that window open while you use the app.
+
+If you would rather type it yourself, the two files do exactly this:
 
 ```bash
 npm install
 npm start
 ```
-
-3. A QR code appears. Open the iPhone **Camera** and point it at the code.
-
-The app opens on your phone. Edit a file and it reloads instantly.
 
 ### Point it at your shop
 
