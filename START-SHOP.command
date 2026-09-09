@@ -62,6 +62,19 @@ if [ -z "$LANIP" ]; then
   [ -n "$DEFAULT_IFACE" ] && LANIP=$(ipconfig getifaddr "$DEFAULT_IFACE" 2>/dev/null)
 fi
 
+# This window is the shop; the QR code for the phone lives in the app's
+# own window. Opening it here saves finding and double-clicking a second
+# file, and the marker tells it the shop is on its way up.
+APP_WINDOW_OPENED=""
+if [ -x mobile/START-APP.command ]; then
+  : > .shop-starting
+  if open -a Terminal "$PWD/mobile/START-APP.command" >/dev/null 2>&1; then
+    APP_WINDOW_OPENED="yes"
+  else
+    rm -f .shop-starting
+  fi
+fi
+
 echo ""
 echo "  ---------------------------------------------"
 echo "   Starting the shop."
@@ -73,6 +86,15 @@ fi
 echo ""
 echo "   Owner sign-in:  carsyardltd@icloud.com"
 echo "                   the password you chose"
+echo ""
+if [ -n "$APP_WINDOW_OPENED" ]; then
+  echo "   THE QR CODE IS NOT IN THIS WINDOW."
+  echo "   A second window is opening for the phone app, and the"
+  echo "   QR code appears in your browser a minute after that."
+else
+  echo "   THE QR CODE IS NOT IN THIS WINDOW. For that, also"
+  echo "   double-click START-APP inside the 'mobile' folder."
+fi
 echo ""
 echo "   Leave this window open. Ctrl+C stops the shop."
 echo "  ---------------------------------------------"

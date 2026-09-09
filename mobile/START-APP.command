@@ -38,6 +38,22 @@ if [ -z "$LANIP" ]; then
   [ -n "$DEFAULT_IFACE" ] && LANIP=$(ipconfig getifaddr "$DEFAULT_IFACE" 2>/dev/null)
 fi
 
+# START-SHOP leaves this behind when it opens this window itself, which
+# means the shop is still warming up and is worth waiting for. Removing
+# it first keeps a stale one from costing the next run the same wait.
+if [ -f ../.shop-starting ]; then
+  rm -f ../.shop-starting
+  if [ -n "$LANIP" ]; then
+    printf "  Waiting for the shop on this computer"
+    for _ in $(seq 1 20); do
+      curl -sS -o /dev/null -m 2 "http://$LANIP:3000/login" 2>/dev/null && break
+      printf "."
+      sleep 2
+    done
+    echo ""
+  fi
+fi
+
 if [ -z "$EXPO_PUBLIC_API_URL" ] && [ -n "$LANIP" ] &&
    curl -sS -o /dev/null -m 2 "http://$LANIP:3000/login" 2>/dev/null; then
   export EXPO_PUBLIC_API_URL="http://$LANIP:3000"

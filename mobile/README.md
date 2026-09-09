@@ -14,11 +14,14 @@ are the same everywhere. Change a price in the app and the website shows it inst
 No Apple account needed for this part.
 
 1. Install **Expo Go** from the App Store on your iPhone.
-2. On your computer, open this `mobile` folder and **double-click**:
-   - **`START-APP.command`** on a Mac
-   - **`START-APP.bat`** on Windows
+2. On your computer, **double-click** `START-SHOP` in the folder above this one
+   (`.command` on a Mac, `.bat` on Windows). It starts the shop **and opens this
+   app in a second window** — that second window is the one with the QR code.
 
-   *(On a Mac the first time, if it says the file can't be opened —
+   To run only the app, without a shop on this computer, double-click
+   **`START-APP`** in this folder instead.
+
+   *(On a Mac the first time, if it says a file can't be opened —
    right-click it, choose **Open**, then **Open** again.)*
 3. **A browser page opens with the QR code.** Point the iPhone **Camera** at it
    and tap the banner.

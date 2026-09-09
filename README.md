@@ -32,10 +32,15 @@ and starts the shop. Open **http://localhost:3000** and sign in with
 **`carsyardltd@icloud.com`** and that password. Nothing here touches the internet;
 it is all running on your own machine.
 
-The window also prints an address like `http://192.168.1.14:3000`. That is the shop
-as your **phone** sees it, on the same WiFi — the phone app finds it by itself.
+It also opens a **second window** for the phone app, which is where the QR code
+comes from. Two windows, two jobs:
 
-Press `Ctrl+C` in that window to stop.
+| Window | What it is | Shows a QR code? |
+|---|---|---|
+| `START-SHOP` | the shop itself — Cloudflare's tools, "Compiled Worker successfully" | no |
+| `START-APP` | the phone app — opens the QR code in your browser | **yes** |
+
+Press `Ctrl+C` in either window to stop it.
 
 ### If you would rather type it
 

@@ -58,6 +58,16 @@ REM computer's address on the WiFi instead.
 set "LANIP="
 for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "(Get-NetIPConfiguration ^| Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } ^| Select-Object -First 1).IPv4Address.IPAddress" 2^>nul`) do set "LANIP=%%a"
 
+REM This window is the shop; the QR code for the phone lives in the app's
+REM own window. Opening it here saves finding and double-clicking a second
+REM file, and the marker tells it the shop is on its way up.
+set "APPWINDOW="
+if not exist "%~dp0mobile\START-APP.bat" goto noAppWindow
+type nul > .shop-starting
+start "Al-Talil - phone app" "%~dp0mobile\START-APP.bat"
+set "APPWINDOW=yes"
+:noAppWindow
+
 echo.
 echo   ---------------------------------------------
 echo    Starting the shop.
@@ -67,6 +77,12 @@ if defined LANIP echo    From your phone:    http://%LANIP%:3000
 echo.
 echo    Owner sign-in:  carsyardltd@icloud.com
 echo                    the password you chose
+echo.
+if defined APPWINDOW echo    THE QR CODE IS NOT IN THIS WINDOW.
+if defined APPWINDOW echo    A second window is opening for the phone app, and the
+if defined APPWINDOW echo    QR code appears in your browser a minute after that.
+if not defined APPWINDOW echo    THE QR CODE IS NOT IN THIS WINDOW. For that, also
+if not defined APPWINDOW echo    double-click START-APP inside the "mobile" folder.
 echo.
 echo    Leave this window open. Ctrl+C stops the shop.
 echo   ---------------------------------------------

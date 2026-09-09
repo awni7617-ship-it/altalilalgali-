@@ -34,6 +34,23 @@ REM localhost, which to a phone means the phone.
 set "LANIP="
 for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "(Get-NetIPConfiguration ^| Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } ^| Select-Object -First 1).IPv4Address.IPAddress" 2^>nul`) do set "LANIP=%%a"
 
+REM START-SHOP leaves this behind when it opens this window itself, which
+REM means the shop is still warming up and is worth waiting for. Removing
+REM it first keeps a stale one from costing the next run the same wait.
+if not exist ..\.shop-starting goto noWait
+del ..\.shop-starting >nul 2>nul
+if not defined LANIP goto noWait
+echo   Waiting for the shop on this computer...
+set /a SHOPTRIES=0
+:waitForShop
+curl -sS -o nul -m 2 "http://%LANIP%:3000/login" >nul 2>nul
+if not errorlevel 1 goto noWait
+set /a SHOPTRIES+=1
+if %SHOPTRIES% GEQ 20 goto noWait
+timeout /t 2 /nobreak >nul
+goto waitForShop
+:noWait
+
 REM If START-SHOP is running here, talk to that instead of the published
 REM shop - otherwise there is nothing to sign in to until it is on
 REM Cloudflare.
