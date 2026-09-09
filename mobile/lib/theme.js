@@ -42,10 +42,5 @@ export const money = (n, symbol = '₪') => {
   return `${v % 1 === 0 ? v.toLocaleString('en-US') : v.toFixed(2)} ${symbol}`;
 };
 
-export const formatDate = (value) => {
-  if (!value) return '';
-  const d = new Date(String(value).replace(' ', 'T') + (String(value).includes('Z') ? '' : 'Z'));
-  return Number.isNaN(d.getTime())
-    ? String(value)
-    : d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
-};
+/* Dates read differently in each language, so formatDate lives in
+ * i18n.js next to the language it needs. */

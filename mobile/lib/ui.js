@@ -1,10 +1,42 @@
 /* Shared pieces, so every screen looks like the same shop. */
 import { Text, View, Pressable, ActivityIndicator, StyleSheet, TextInput } from 'react-native';
 import { C, shadow } from './theme';
+import { useLang } from './i18n';
 
-/** Arabic reads right-to-left; every label here defaults to that. */
+/**
+ * Every piece of text in the app comes through here, which is what
+ * makes one language switch turn the whole app around: the reading
+ * direction is read from the current language rather than baked in.
+ */
 export function T({ style, children, ...rest }) {
-  return <Text style={[styles.text, style]} {...rest}>{children}</Text>;
+  const { align, dir } = useLang();
+  return (
+    <Text style={[styles.text, { textAlign: align, writingDirection: dir }, style]} {...rest}>
+      {children}
+    </Text>
+  );
+}
+
+/** Switches between Arabic and English, naming the one it switches to. */
+export function LangToggle({ compact, style }) {
+  const { other, toggle } = useLang();
+  return (
+    <Pressable
+      onPress={toggle}
+      accessibilityRole="button"
+      accessibilityLabel={other}
+      hitSlop={8}
+      style={({ pressed }) => [
+        compact ? styles.langCompact : styles.lang,
+        pressed && { opacity: 0.7 },
+        style,
+      ]}
+    >
+      <Text style={[styles.langText, compact && { color: '#fff', fontSize: 13 }]}>
+        {compact ? '🌐' : '🌐  '}{other}
+      </Text>
+    </Pressable>
+  );
 }
 
 export function Button({ title, onPress, kind = 'solid', busy, disabled, style, icon }) {
@@ -41,13 +73,19 @@ export function Button({ title, onPress, kind = 'solid', busy, disabled, style, 
   );
 }
 
-export function Field({ label, hint, error, ...rest }) {
+export function Field({ label, hint, error, style, ...rest }) {
+  const { align, dir } = useLang();
   return (
     <View style={{ marginBottom: 14 }}>
       {!!label && <T style={styles.label}>{label}</T>}
       <TextInput
         placeholderTextColor={C.inkMute}
-        style={[styles.input, !!error && { borderColor: C.bad }]}
+        style={[
+          styles.input,
+          { textAlign: align, writingDirection: dir },
+          !!error && { borderColor: C.bad },
+          style,
+        ]}
         {...rest}
       />
       {!!error && <T style={styles.error}>{error}</T>}
@@ -55,6 +93,9 @@ export function Field({ label, hint, error, ...rest }) {
     </View>
   );
 }
+
+/** An e-mail, a phone number or a price always reads left to right. */
+export const ltr = { textAlign: 'left', writingDirection: 'ltr' };
 
 export function Card({ style, children }) {
   return <View style={[styles.card, shadow, style]}>{children}</View>;
@@ -107,7 +148,14 @@ export function PhotoBlank({ letter, size = 44 }) {
 }
 
 export const styles = StyleSheet.create({
-  text: { writingDirection: 'rtl', textAlign: 'right', color: C.ink, fontSize: 15 },
+  /* Direction is added per language by T; this is everything else. */
+  text: { color: C.ink, fontSize: 15 },
+  lang: {
+    alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999,
+    borderWidth: 1, borderColor: C.line, backgroundColor: C.surface,
+  },
+  langCompact: { paddingHorizontal: 8, paddingVertical: 4 },
+  langText: { color: C.inkSoft, fontWeight: '700', fontSize: 14 },
   btn: {
     minHeight: 50, borderRadius: 999, alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 22, flexDirection: 'row',
@@ -117,7 +165,6 @@ export const styles = StyleSheet.create({
   input: {
     borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 14,
     paddingVertical: 13, fontSize: 16, backgroundColor: C.surface, color: C.ink,
-    textAlign: 'right', writingDirection: 'rtl',
   },
   hint: { fontSize: 12.5, color: C.inkMute, marginTop: 5 },
   error: { fontSize: 13, color: C.bad, marginTop: 5 },

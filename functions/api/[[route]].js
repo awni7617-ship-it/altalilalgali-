@@ -313,7 +313,7 @@ routes.get('admin/overview', async ({ db, user }) => {
   const recent = await db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 8').all();
   const top = await db
     .prepare(
-      `SELECT p.id, p.name_ar, p.stock,
+      `SELECT p.id, p.name_ar, p.name_en, p.stock,
               COALESCE(SUM(oi.qty), 0) AS sold,
               COALESCE(SUM(oi.qty * oi.price), 0) AS revenue
        FROM products p

@@ -3,6 +3,7 @@ import { View, ScrollView, Image, Pressable, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { api, photoUrl } from '../../lib/api';
 import { useCart } from '../../lib/cart';
+import { useLang } from '../../lib/i18n';
 import { T, Button, Badge, Loading, Empty, PhotoBlank } from '../../lib/ui';
 import { C, money } from '../../lib/theme';
 
@@ -12,6 +13,7 @@ export default function Product() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { add } = useCart();
+  const { t, tx, row } = useLang();
 
   const [product, setProduct] = useState(null);
   const [settings, setSettings] = useState({});
@@ -34,9 +36,11 @@ export default function Product() {
     })();
   }, [id]);
 
-  if (error) return <Empty icon="⚠️" title="تعذّر فتح المنتج" note={error} />;
+  if (error) return <Empty icon="⚠️" title={t('product_open_failed')} note={error} />;
   if (!product) return <Loading />;
 
+  const name = tx(product, 'name');
+  const description = tx(product, 'description');
   const symbol = settings.currency_symbol || '₪';
   const photos = (product.images || []).map((i) => photoUrl(i.url)).filter(Boolean);
   const sale = product.compare_price > product.price;
@@ -44,7 +48,7 @@ export default function Product() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen options={{ title: product.name_ar }} />
+      <Stack.Screen options={{ title: name }} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={{ width: WIDTH, height: WIDTH, backgroundColor: C.surface2 }}>
@@ -61,7 +65,7 @@ export default function Product() {
               ))}
             </ScrollView>
           ) : (
-            <PhotoBlank letter={(product.name_ar || '').slice(0, 1)} size={80} />
+            <PhotoBlank letter={name.slice(0, 1)} size={80} />
           )}
 
           {photos.length > 1 && (
@@ -79,9 +83,9 @@ export default function Product() {
               {product.brand.toUpperCase()}
             </T>
           )}
-          <T style={{ fontSize: 23, fontWeight: '700', lineHeight: 32 }}>{product.name_ar}</T>
+          <T style={{ fontSize: 23, fontWeight: '700', lineHeight: 32 }}>{name}</T>
 
-          <View style={{ flexDirection: 'row-reverse', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
+          <View style={{ flexDirection: row, alignItems: 'baseline', gap: 10, marginTop: 8 }}>
             <T style={{ fontSize: 27, fontWeight: '700', color: C.plum700 }}>
               {money(product.price, symbol)}
             </T>
@@ -92,27 +96,32 @@ export default function Product() {
             )}
           </View>
 
-          <View style={{ flexDirection: 'row-reverse', marginTop: 10 }}>
+          <View style={{ flexDirection: row, marginTop: 10 }}>
             {product.in_stock
-              ? <Badge tone="ok" text={product.stock <= 5 ? `متوفر — باقي ${product.stock}` : 'متوفر'} />
-              : <Badge tone="slate" text="نفدت الكمية" />}
+              ? (
+                <Badge
+                  tone="ok"
+                  text={product.stock <= 5 ? t('in_stock_n', { n: product.stock }) : t('in_stock')}
+                />
+              )
+              : <Badge tone="slate" text={t('sold_out')} />}
           </View>
 
-          {!!product.description_ar && (
+          {!!description && (
             <T style={{ color: C.inkSoft, lineHeight: 26, marginTop: 16 }}>
-              {product.description_ar}
+              {description}
             </T>
           )}
         </View>
       </ScrollView>
 
       {product.in_stock && (
-        <View style={s.bottom}>
-          <View style={s.stepper}>
+        <View style={[s.bottom, { flexDirection: row }]}>
+          <View style={[s.stepper, { flexDirection: row }]}>
             <Pressable
               onPress={() => setQty((q) => Math.max(1, q - 1))}
               style={s.stepBtn}
-              accessibilityLabel="أقل"
+              accessibilityLabel={t('less')}
             >
               <T style={{ fontSize: 20, color: C.inkSoft }}>−</T>
             </Pressable>
@@ -120,14 +129,14 @@ export default function Product() {
             <Pressable
               onPress={() => setQty((q) => Math.min(max, q + 1))}
               style={s.stepBtn}
-              accessibilityLabel="أكثر"
+              accessibilityLabel={t('more')}
             >
               <T style={{ fontSize: 20, color: C.inkSoft }}>＋</T>
             </Pressable>
           </View>
 
           <Button
-            title="أضيفي إلى السلة"
+            title={t('add_to_cart')}
             icon="🛍️"
             style={{ flex: 1 }}
             onPress={() => {
@@ -149,12 +158,12 @@ const s = {
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.8)' },
   bottom: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    flexDirection: 'row-reverse', alignItems: 'center', gap: 12,
+    alignItems: 'center', gap: 12,
     padding: 14, paddingBottom: 28,
     backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line,
   },
   stepper: {
-    flexDirection: 'row-reverse', alignItems: 'center',
+    alignItems: 'center',
     borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingHorizontal: 4,
   },
   stepBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },

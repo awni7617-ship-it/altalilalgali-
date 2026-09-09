@@ -2,11 +2,13 @@ import { useCallback, useState } from 'react';
 import { View, ScrollView, Image, Pressable, Switch, TextInput, RefreshControl, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { api, photoUrl } from '../../lib/api';
+import { useLang } from '../../lib/i18n';
 import { T, Card, Button, Loading, Empty, PhotoBlank, styles as ui } from '../../lib/ui';
 import { C, money } from '../../lib/theme';
 
 export default function Products() {
   const router = useRouter();
+  const { t, tx, row, align, dir } = useLang();
   const [products, setProducts] = useState(null);
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -29,7 +31,7 @@ export default function Products() {
     } catch (err) {
       /* Put the switch back where it was if the shop refused. */
       setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, is_active: !value } : p)));
-      Alert.alert('تعذّر الحفظ', err.message);
+      Alert.alert(t('save_failed'), err.message);
     }
   }
 
@@ -39,7 +41,7 @@ export default function Products() {
       await api.patch(`/api/admin/products/${product.id}`, { stock });
       setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, stock } : p)));
     } catch (err) {
-      Alert.alert('تعذّر الحفظ', err.message);
+      Alert.alert(t('save_failed'), err.message);
     }
   }
 
@@ -56,12 +58,12 @@ export default function Products() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="ابحثي بالاسم أو الرمز…"
+          placeholder={t('search_products_ph')}
           placeholderTextColor={C.inkMute}
-          style={[ui.input, { paddingVertical: 10 }]}
+          style={[ui.input, { paddingVertical: 10, textAlign: align, writingDirection: dir }]}
           clearButtonMode="while-editing"
         />
-        <Button title="إضافة منتج" icon="＋" onPress={() => router.push('/owner/product/new')} />
+        <Button title={t('add_product')} icon="＋" onPress={() => router.push('/owner/product/new')} />
       </View>
 
       <ScrollView
@@ -74,35 +76,38 @@ export default function Products() {
           />
         }
       >
-        {shown.length === 0 && <Empty icon="🧴" title="لا توجد منتجات" note="أضيفي أول منتج للمتجر." />}
+        {shown.length === 0 && <Empty icon="🧴" title={t('no_products')} note={t('no_products_note')} />}
 
         {shown.map((product) => {
           const photo = photoUrl(product.image);
+          const name = tx(product, 'name');
           return (
             <Card key={product.id} style={{ gap: 12, opacity: product.is_active ? 1 : 0.6 }}>
               <Pressable
                 onPress={() => router.push(`/owner/product/${product.id}`)}
-                style={{ flexDirection: 'row-reverse', gap: 12 }}
+                style={{ flexDirection: row, gap: 12 }}
               >
                 <View style={{ width: 62, height: 62, borderRadius: 10, overflow: 'hidden', backgroundColor: C.surface2 }}>
                   {photo
                     ? <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-                    : <PhotoBlank letter={(product.name_ar || '').slice(0, 1)} size={22} />}
+                    : <PhotoBlank letter={name.slice(0, 1)} size={22} />}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <T style={{ fontWeight: '600' }} numberOfLines={2}>{product.name_ar}</T>
+                  <T style={{ fontWeight: '600' }} numberOfLines={2}>{name}</T>
                   <T style={{ color: C.plum700, fontWeight: '700', marginTop: 4 }}>
                     {money(product.price)}
                   </T>
                   {!!product.cost_usd && (
-                    <T style={{ color: C.inkMute, fontSize: 12 }}>التكلفة ${product.cost_usd}</T>
+                    <T style={{ color: C.inkMute, fontSize: 12 }}>
+                      {t('cost_usd_is', { amount: product.cost_usd })}
+                    </T>
                   )}
                 </View>
               </Pressable>
 
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 14 }}>
-                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
-                  <T style={{ color: C.inkSoft, fontSize: 13.5 }}>الكمية</T>
+              <View style={{ flexDirection: row, alignItems: 'center', gap: 14 }}>
+                <View style={{ flexDirection: row, alignItems: 'center', gap: 8, flex: 1 }}>
+                  <T style={{ color: C.inkSoft, fontSize: 13.5 }}>{t('quantity')}</T>
                   <TextInput
                     defaultValue={String(product.stock)}
                     keyboardType="number-pad"
@@ -111,8 +116,8 @@ export default function Products() {
                   />
                 </View>
 
-                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-                  <T style={{ color: C.inkSoft, fontSize: 13.5 }}>معروض</T>
+                <View style={{ flexDirection: row, alignItems: 'center', gap: 8 }}>
+                  <T style={{ color: C.inkSoft, fontSize: 13.5 }}>{t('shown')}</T>
                   <Switch
                     value={!!product.is_active}
                     onValueChange={(v) => toggleActive(product, v)}

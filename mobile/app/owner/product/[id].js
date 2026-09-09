@@ -5,7 +5,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { api, photoUrl } from '../../../lib/api';
-import { T, Button, Field, Card, Loading, styles as ui } from '../../../lib/ui';
+import { useLang } from '../../../lib/i18n';
+import { T, Button, Field, Card, Loading, ltr, styles as ui } from '../../../lib/ui';
 import { C, money } from '../../../lib/theme';
 
 const MAX_PHOTOS = 6;
@@ -13,6 +14,7 @@ const MAX_PHOTOS = 6;
 export default function EditProduct() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { t, tx, row, isAr } = useLang();
   const isNew = id === 'new';
 
   const [loading, setLoading] = useState(!isNew);
@@ -22,7 +24,7 @@ export default function EditProduct() {
   const [categories, setCategories] = useState([]);
 
   const [form, setForm] = useState({
-    name_ar: '', name_en: '', description_ar: '', brand: '',
+    name_ar: '', name_en: '', description_ar: '', description_en: '', brand: '',
     price: '', compare_price: '', cost_usd: '', stock: '0',
     category_id: null, is_active: true, is_featured: false,
   });
@@ -44,7 +46,8 @@ export default function EditProduct() {
           if (p) {
             setForm({
               name_ar: p.name_ar || '', name_en: p.name_en || '',
-              description_ar: p.description_ar || '', brand: p.brand || '',
+              description_ar: p.description_ar || '', description_en: p.description_en || '',
+              brand: p.brand || '',
               price: String(p.price || ''), compare_price: p.compare_price ? String(p.compare_price) : '',
               cost_usd: p.cost_usd ? String(p.cost_usd) : '', stock: String(p.stock ?? 0),
               category_id: p.category_id, is_active: !!p.is_active, is_featured: !!p.is_featured,
@@ -63,14 +66,14 @@ export default function EditProduct() {
 
   async function pickPhoto(fromCamera) {
     if (photos.length >= MAX_PHOTOS) {
-      return Alert.alert('الحد الأقصى', `يمكن إضافة ${MAX_PHOTOS} صور فقط.`);
+      return Alert.alert(t('max_photos'), t('max_photos_note', { n: MAX_PHOTOS }));
     }
 
     const permission = fromCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      return Alert.alert('الإذن مطلوب', 'يحتاج التطبيق إذن الوصول للصور لإضافة صور المنتجات.');
+      return Alert.alert(t('permission_needed'), t('permission_note'));
     }
 
     const options = {
@@ -86,7 +89,7 @@ export default function EditProduct() {
 
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
-    if (!asset.base64) return Alert.alert('تعذّر قراءة الصورة');
+    if (!asset.base64) return Alert.alert(t('photo_read_failed'));
 
     /* The shop reads photos as data URLs, the same as the website. */
     const type = asset.mimeType || 'image/jpeg';
@@ -95,8 +98,8 @@ export default function EditProduct() {
 
   async function save() {
     setError('');
-    if (!form.name_ar.trim() && !form.name_en.trim()) return setError('الرجاء إدخال اسم المنتج');
-    if (!(Number(form.price) > 0)) return setError('الرجاء إدخال سعر بيع أكبر من صفر');
+    if (!form.name_ar.trim() && !form.name_en.trim()) return setError(t('err_product_name'));
+    if (!(Number(form.price) > 0)) return setError(t('err_product_price'));
 
     setSaving(true);
     try {
@@ -119,17 +122,20 @@ export default function EditProduct() {
   }
 
   function confirmDelete() {
-    Alert.alert('حذف المنتج', `حذف "${form.name_ar}" من المتجر؟`, [
-      { text: 'إلغاء', style: 'cancel' },
+    /* Named in the language being read, so the prompt names the
+       product the owner is actually looking at. */
+    const shownName = (isAr ? form.name_ar : form.name_en) || form.name_ar || form.name_en;
+    Alert.alert(t('delete_product'), t('delete_product_ask', { name: shownName }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'حذف',
+        text: t('delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await api.del(`/api/admin/products/${id}`);
             router.back();
           } catch (err) {
-            Alert.alert('تعذّر الحذف', err.message);
+            Alert.alert(t('delete_failed'), err.message);
           }
         },
       },
@@ -145,30 +151,47 @@ export default function EditProduct() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title: isNew ? 'منتج جديد' : 'تعديل منتج' }} />
+      <Stack.Screen options={{ title: isNew ? t('new_product') : t('edit_product') }} />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <Field label="اسم المنتج" value={form.name_ar} onChangeText={set('name_ar')} maxLength={140} />
+        {/* Both languages are edited here, with the one being read
+            first — a shop that sells in two languages needs both
+            filled in, whichever the owner happens to be using. */}
         <Field
-          label="الاسم بالإنجليزية"
+          label={isAr ? t('product_name') : t('name_other')}
+          value={form.name_ar}
+          onChangeText={set('name_ar')}
+          maxLength={140}
+          style={{ textAlign: 'right', writingDirection: 'rtl' }}
+        />
+        <Field
+          label={isAr ? t('name_other') : t('product_name')}
           value={form.name_en}
           onChangeText={set('name_en')}
           maxLength={140}
-          style={[ui.input, { textAlign: 'left', writingDirection: 'ltr' }]}
+          style={ltr}
         />
         <Field
-          label="الوصف"
+          label={`${t('description')} · العربية`}
           value={form.description_ar}
           onChangeText={set('description_ar')}
           multiline
           maxLength={2000}
-          style={[ui.input, { minHeight: 92, textAlignVertical: 'top' }]}
+          style={{ minHeight: 92, textAlignVertical: 'top', textAlign: 'right', writingDirection: 'rtl' }}
         />
-        <Field label="الماركة" value={form.brand} onChangeText={set('brand')} maxLength={60} />
+        <Field
+          label={`${t('description')} · English`}
+          value={form.description_en}
+          onChangeText={set('description_en')}
+          multiline
+          maxLength={2000}
+          style={[ltr, { minHeight: 92, textAlignVertical: 'top' }]}
+        />
+        <Field label={t('brand')} value={form.brand} onChangeText={set('brand')} maxLength={60} />
 
-        <T style={ui.label}>القسم</T>
+        <T style={ui.label}>{t('category')}</T>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-          <View style={{ flexDirection: 'row-reverse', gap: 8 }}>
+          <View style={{ flexDirection: row, gap: 8 }}>
             {categories.map((c) => {
               const on = form.category_id === c.id;
               return (
@@ -181,7 +204,7 @@ export default function EditProduct() {
                   }}
                 >
                   <T style={{ color: on ? '#fff' : C.inkSoft, fontSize: 14 }}>
-                    {c.icon ? `${c.icon} ` : ''}{c.name_ar}
+                    {c.icon ? `${c.icon} ` : ''}{tx(c, 'name')}
                   </T>
                 </Pressable>
               );
@@ -189,21 +212,21 @@ export default function EditProduct() {
           </View>
         </ScrollView>
 
-        <View style={{ flexDirection: 'row-reverse', gap: 10 }}>
+        <View style={{ flexDirection: row, gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Field label="سعر البيع (₪)" value={form.price} onChangeText={set('price')} keyboardType="decimal-pad" />
+            <Field label={t('sell_price')} value={form.price} onChangeText={set('price')} keyboardType="decimal-pad" />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="قبل الخصم" value={form.compare_price} onChangeText={set('compare_price')} keyboardType="decimal-pad" />
+            <Field label={t('before_discount')} value={form.compare_price} onChangeText={set('compare_price')} keyboardType="decimal-pad" />
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row-reverse', gap: 10 }}>
+        <View style={{ flexDirection: row, gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Field label="التكلفة ($)" value={form.cost_usd} onChangeText={set('cost_usd')} keyboardType="decimal-pad" />
+            <Field label={t('cost_dollars')} value={form.cost_usd} onChangeText={set('cost_usd')} keyboardType="decimal-pad" />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="الكمية" value={form.stock} onChangeText={set('stock')} keyboardType="number-pad" />
+            <Field label={t('quantity')} value={form.stock} onChangeText={set('stock')} keyboardType="number-pad" />
           </View>
         </View>
 
@@ -214,23 +237,23 @@ export default function EditProduct() {
           }}>
             <T style={{ color: profit < 0 ? C.bad : C.ok, fontWeight: '700' }}>
               {profit < 0
-                ? '⚠️  سعر البيع أقل من التكلفة'
-                : `💰  ربح ${money(profit)} لكل قطعة (${margin}٪)`}
+                ? t('below_cost')
+                : t('profit_each', { amount: money(profit), n: margin })}
             </T>
           </View>
         )}
 
         <Card style={{ gap: 14, marginBottom: 16 }}>
-          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
-            <T style={{ fontWeight: '600' }}>معروض في المتجر</T>
+          <View style={{ flexDirection: row, alignItems: 'center', justifyContent: 'space-between' }}>
+            <T style={{ fontWeight: '600' }}>{t('shown_in_shop')}</T>
             <Switch
               value={form.is_active}
               onValueChange={set('is_active')}
               trackColor={{ true: C.ok, false: C.line }}
             />
           </View>
-          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
-            <T style={{ fontWeight: '600' }}>★ منتج مميز</T>
+          <View style={{ flexDirection: row, alignItems: 'center', justifyContent: 'space-between' }}>
+            <T style={{ fontWeight: '600' }}>{t('featured')}</T>
             <Switch
               value={form.is_featured}
               onValueChange={set('is_featured')}
@@ -239,38 +262,38 @@ export default function EditProduct() {
           </View>
         </Card>
 
-        <T style={ui.label}>الصور</T>
-        <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        <T style={ui.label}>{t('photos')}</T>
+        <View style={{ flexDirection: row, flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           {photos.map((p, index) => (
             <View key={`${index}-${p.slice(-20)}`} style={s.thumb}>
               <Image source={{ uri: photoUrl(p) }} style={{ width: '100%', height: '100%' }} />
               <Pressable
                 onPress={() => setPhotos((prev) => prev.filter((_, i) => i !== index))}
                 style={s.remove}
-                accessibilityLabel="حذف الصورة"
+                accessibilityLabel={t('remove_photo')}
               >
                 <T style={{ color: '#fff', fontSize: 13 }}>✕</T>
               </Pressable>
               {index === 0 && (
                 <View style={s.main}>
-                  <T style={{ color: '#fff', fontSize: 10, textAlign: 'center' }}>رئيسية</T>
+                  <T style={{ color: '#fff', fontSize: 10, textAlign: 'center' }}>{t('main_photo')}</T>
                 </View>
               )}
             </View>
           ))}
         </View>
 
-        <View style={{ flexDirection: 'row-reverse', gap: 10, marginBottom: 18 }}>
-          <Button title="التقاط صورة" icon="📷" kind="ghost" style={{ flex: 1 }} onPress={() => pickPhoto(true)} />
-          <Button title="من الاستوديو" icon="🖼" kind="ghost" style={{ flex: 1 }} onPress={() => pickPhoto(false)} />
+        <View style={{ flexDirection: row, gap: 10, marginBottom: 18 }}>
+          <Button title={t('take_photo')} icon="📷" kind="ghost" style={{ flex: 1 }} onPress={() => pickPhoto(true)} />
+          <Button title={t('from_library')} icon="🖼" kind="ghost" style={{ flex: 1 }} onPress={() => pickPhoto(false)} />
         </View>
 
         {!!error && <T style={{ color: C.bad, marginBottom: 12 }}>{error}</T>}
 
-        <Button title={isNew ? 'إضافة المنتج' : 'حفظ التعديلات'} onPress={save} busy={saving} />
+        <Button title={isNew ? t('add_product_cta') : t('save_changes')} onPress={save} busy={saving} />
 
         {!isNew && (
-          <Button title="حذف المنتج" kind="ghost" onPress={confirmDelete} style={{ marginTop: 10 }} />
+          <Button title={t('delete_product')} kind="ghost" onPress={confirmDelete} style={{ marginTop: 10 }} />
         )}
       </ScrollView>
     </KeyboardAvoidingView>

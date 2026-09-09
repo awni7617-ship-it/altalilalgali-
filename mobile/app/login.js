@@ -5,13 +5,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/api';
-import { T, Button, Field, styles as ui } from '../lib/ui';
+import { useLang } from '../lib/i18n';
+import { T, Button, Field, LangToggle, ltr } from '../lib/ui';
 import { C } from '../lib/theme';
 
 export default function Login() {
   const router = useRouter();
   const { signIn, register } = useAuth();
   const insets = useSafeAreaInsets();
+  const { t, row } = useLang();
 
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
@@ -27,12 +29,10 @@ export default function Login() {
     setError('');
     const address = email.trim().toLowerCase();
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
-      return setError('الرجاء إدخال بريد إلكتروني صحيح');
-    }
-    if (!password) return setError('الرجاء إدخال كلمة المرور');
-    if (!isLogin && password.length < 8) return setError('كلمة المرور يجب أن تكون ٨ أحرف على الأقل');
-    if (!isLogin && password !== repeat) return setError('كلمتا المرور غير متطابقتين');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return setError(t('err_email'));
+    if (!password) return setError(t('err_password_required'));
+    if (!isLogin && password.length < 8) return setError(t('err_password_short'));
+    if (!isLogin && password !== repeat) return setError(t('err_password_match'));
 
     setBusy(true);
     try {
@@ -65,15 +65,15 @@ export default function Login() {
             source={require('../assets/icon.png')}
             style={{ width: 74, height: 74, borderRadius: 20, marginBottom: 14 }}
           />
-          <T style={{ fontSize: 25, fontWeight: '700', color: '#fff' }}>الطليل الغالي</T>
+          <T style={{ fontSize: 25, fontWeight: '700', color: '#fff' }}>{t('app_name')}</T>
           <T style={{ color: '#e6cdd3', marginTop: 6 }}>
-            {isLogin ? 'سجّلي الدخول للمتابعة' : 'أنشئي حسابك للتسوق'}
+            {isLogin ? t('sign_in_sub') : t('register_sub')}
           </T>
         </View>
 
         <View style={{ backgroundColor: C.surface, borderRadius: 22, padding: 20 }}>
-          <View style={s.tabs}>
-            {[['login', 'تسجيل الدخول'], ['register', 'حساب جديد']].map(([key, label]) => (
+          <View style={[s.tabs, { flexDirection: row }]}>
+            {[['login', t('sign_in')], ['register', t('register_tab')]].map(([key, label]) => (
               <Pressable
                 key={key}
                 onPress={() => { setMode(key); setError(''); }}
@@ -88,7 +88,7 @@ export default function Login() {
 
           {!isLogin && (
             <Field
-              label="الاسم الكامل"
+              label={t('full_name')}
               value={name}
               onChangeText={setName}
               autoComplete="name"
@@ -97,44 +97,48 @@ export default function Login() {
           )}
 
           <Field
-            label="البريد الإلكتروني"
+            label={t('email')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
             placeholder="name@example.com"
-            style={[ui.input, { textAlign: 'left', writingDirection: 'ltr' }]}
+            style={ltr}
           />
 
           <Field
-            label="كلمة المرور"
+            label={t('password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             autoComplete={isLogin ? 'current-password' : 'new-password'}
-            style={[ui.input, { textAlign: 'left', writingDirection: 'ltr' }]}
+            style={ltr}
           />
 
           {!isLogin && (
             <Field
-              label="تأكيد كلمة المرور"
+              label={t('confirm_password')}
               value={repeat}
               onChangeText={setRepeat}
               secureTextEntry
               autoComplete="new-password"
-              style={[ui.input, { textAlign: 'left', writingDirection: 'ltr' }]}
+              style={ltr}
             />
           )}
 
           {!!error && <T style={{ color: C.bad, marginBottom: 12 }}>{error}</T>}
 
           <Button
-            title={isLogin ? 'دخول' : 'إنشاء الحساب'}
+            title={isLogin ? t('sign_in_cta') : t('create_account')}
             onPress={submit}
             busy={busy}
           />
         </View>
+
+        {/* Before signing in is exactly when someone needs to change the
+            language — everything after this point assumes they can read it. */}
+        <LangToggle style={{ marginTop: 22 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -142,7 +146,7 @@ export default function Login() {
 
 const s = {
   tabs: {
-    flexDirection: 'row-reverse', backgroundColor: C.surface2, borderRadius: 999,
+    backgroundColor: C.surface2, borderRadius: 999,
     padding: 4, marginBottom: 18,
   },
   tab: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },

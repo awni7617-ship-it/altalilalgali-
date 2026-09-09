@@ -2,18 +2,20 @@ import { useCallback, useState } from 'react';
 import { View, ScrollView, Pressable, Linking, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { api } from '../../lib/api';
-import { T, Card, Badge, Loading, Empty, Button } from '../../lib/ui';
-import { C, money, formatDate } from '../../lib/theme';
+import { useLang } from '../../lib/i18n';
+import { T, Card, Badge, Loading, Empty, Button, ltr } from '../../lib/ui';
+import { C, money } from '../../lib/theme';
 
 const FLOW = [
-  ['new', 'جديد', 'plum'],
-  ['confirmed', 'مؤكد', 'plum'],
-  ['shipped', 'تم الشحن', 'warn'],
-  ['delivered', 'تم التسليم', 'ok'],
-  ['cancelled', 'ملغي', 'bad'],
+  ['new', 'status_new', 'plum'],
+  ['confirmed', 'status_confirmed', 'plum'],
+  ['shipped', 'status_shipped', 'warn'],
+  ['delivered', 'status_delivered', 'ok'],
+  ['cancelled', 'status_cancelled', 'bad'],
 ];
 
 export default function Orders() {
+  const { t, row, date, city: cityName, alignEnd } = useLang();
   const [orders, setOrders] = useState(null);
   const [filter, setFilter] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +38,7 @@ export default function Orders() {
       await api.patch(`/api/admin/orders/${order.id}`, { status });
       await load();
     } catch (err) {
-      Alert.alert('تعذّر التحديث', err.message);
+      Alert.alert(t('update_failed'), err.message);
     } finally {
       setBusyId(null);
     }
@@ -49,10 +51,10 @@ export default function Orders() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ flexDirection: 'row-reverse', gap: 8, padding: 12 }}
+        contentContainerStyle={{ flexDirection: row, gap: 8, padding: 12 }}
         style={{ flexGrow: 0, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line }}
       >
-        {[['', 'الكل'], ...FLOW.map(([k, l]) => [k, l])].map(([key, label]) => {
+        {[['', t('all')], ...FLOW.map(([k, labelKey]) => [k, t(labelKey)])].map(([key, label]) => {
           const on = filter === key;
           return (
             <Pressable
@@ -80,7 +82,7 @@ export default function Orders() {
           />
         }
       >
-        {orders.length === 0 && <Empty icon="🧾" title="لا توجد طلبات هنا" />}
+        {orders.length === 0 && <Empty icon="🧾" title={t('no_orders_here')} />}
 
         {orders.map((order) => {
           const entry = FLOW.find(([k]) => k === order.status) || FLOW[0];
@@ -89,15 +91,15 @@ export default function Orders() {
 
           return (
             <Card key={order.id} style={{ gap: 10 }}>
-              <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flexDirection: row, justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <View style={{ flex: 1 }}>
                   <T style={{ fontWeight: '700', fontSize: 16 }}>#{order.order_no}</T>
                   <T style={{ color: C.inkMute, fontSize: 12.5, marginTop: 2 }}>
-                    {formatDate(order.created_at)}
+                    {date(order.created_at)}
                   </T>
                 </View>
-                <View style={{ alignItems: 'flex-start', gap: 6 }}>
-                  <Badge text={entry[1]} tone={entry[2]} />
+                <View style={{ alignItems: alignEnd === 'left' ? 'flex-start' : 'flex-end', gap: 6 }}>
+                  <Badge text={t(entry[1])} tone={entry[2]} />
                   <T style={{ fontWeight: '700', color: C.plum700, fontSize: 16 }}>
                     {money(order.total)}
                   </T>
@@ -106,10 +108,12 @@ export default function Orders() {
 
               <View style={{ backgroundColor: C.surface2, borderRadius: 10, padding: 11, gap: 3 }}>
                 <T style={{ fontWeight: '600' }}>{order.customer_name}</T>
-                <T style={{ color: C.inkSoft, fontSize: 13.5, textAlign: 'left', writingDirection: 'ltr' }}>
+                <T style={[{ color: C.inkSoft, fontSize: 13.5 }, ltr]}>
                   {order.phone}
                 </T>
-                <T style={{ color: C.inkSoft, fontSize: 13.5 }}>{order.city} — {order.address}</T>
+                <T style={{ color: C.inkSoft, fontSize: 13.5 }}>
+                  {cityName(order.city)} — {order.address}
+                </T>
                 {!!order.notes && (
                   <T style={{ color: C.inkMute, fontSize: 13, marginTop: 4 }}>📝 {order.notes}</T>
                 )}
@@ -117,7 +121,7 @@ export default function Orders() {
 
               <View>
                 {order.items?.map((i) => (
-                  <View key={i.id} style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', paddingVertical: 3 }}>
+                  <View key={i.id} style={{ flexDirection: row, justifyContent: 'space-between', paddingVertical: 3 }}>
                     <T style={{ flex: 1, color: C.inkSoft }} numberOfLines={1}>{i.name} × {i.qty}</T>
                     <T style={{ color: C.inkSoft }}>{money(i.price * i.qty)}</T>
                   </View>
@@ -125,8 +129,8 @@ export default function Orders() {
               </View>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row-reverse', gap: 7 }}>
-                  {FLOW.map(([key, label]) => (
+                <View style={{ flexDirection: row, gap: 7 }}>
+                  {FLOW.map(([key, labelKey]) => (
                     <Pressable
                       key={key}
                       disabled={busyId === order.id || order.status === key}
@@ -140,7 +144,7 @@ export default function Orders() {
                       }}
                     >
                       <T style={{ fontSize: 13.5, color: order.status === key ? C.plum700 : C.inkSoft }}>
-                        {label}
+                        {t(labelKey)}
                       </T>
                     </Pressable>
                   ))}
@@ -149,7 +153,7 @@ export default function Orders() {
 
               {!!wa && (
                 <Button
-                  title="مراسلة الزبونة على واتساب"
+                  title={t('message_customer')}
                   kind="whatsapp"
                   icon="💬"
                   onPress={() => Linking.openURL(`https://wa.me/${wa}`).catch(() => {})}

@@ -8,6 +8,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { tr } from './i18n';
 
 const TOKEN_KEY = 'altalil_session';
 
@@ -69,17 +70,17 @@ async function request(method, path, body) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError('تعذّر الاتصال بالمتجر. تحقّقي من الإنترنت.', 0, 'network');
+    throw new ApiError(tr('err_network'), 0, 'network');
   }
 
   let data = {};
   try {
     data = await response.json();
   } catch {
-    if (!response.ok) throw new ApiError('حدث خطأ. حاولي مرة أخرى.', response.status, 'bad_response');
+    if (!response.ok) throw new ApiError(tr('err_generic'), response.status, 'bad_response');
   }
   if (!response.ok || data.ok === false) {
-    throw new ApiError(data.error || 'حدث خطأ. حاولي مرة أخرى.', response.status, data.code || '');
+    throw new ApiError(data.error || tr('err_generic'), response.status, data.code || '');
   }
   return data;
 }
