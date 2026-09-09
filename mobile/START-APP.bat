@@ -45,12 +45,30 @@ echo          ^(start START-SHOP first to use the one on this computer^)
 :haveShop
 
 echo.
-echo   A QR code will appear below.
-echo   Point your iPhone CAMERA at it, then tap the banner.
-echo   Your phone and this computer must be on the same WiFi.
+echo   ---------------------------------------------
+echo    A QR code appears below, after about a minute.
+echo    Point your iPhone CAMERA at it, then tap the banner.
 echo.
-echo   Press Ctrl+C in this window to stop.
+if not defined LANIP goto noManualUrl
+echo    NO QR CODE, or it will not scan?
+echo    Open Expo Go on the iPhone, tap 'Enter URL manually',
+echo    and type this - it does the same thing:
+echo.
+echo         exp://%LANIP%:8081
+echo.
+goto haveManualUrl
+:noManualUrl
+echo    No QR code? Expo also prints an exp:// address below.
+echo    Type that into 'Enter URL manually' in Expo Go.
+echo.
+:haveManualUrl
+echo    Phone and computer must be on the same WiFi.
+echo    Ctrl+C stops it. This window must stay open.
+echo   ---------------------------------------------
 echo.
 
 call npm start
+
+echo.
+echo   The app server stopped.
 pause
