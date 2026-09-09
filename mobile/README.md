@@ -29,7 +29,25 @@ phone; edit a file and it reloads instantly.
 Nothing in the folder shows the QR code on its own — it only appears once one
 of those two files is running. Leave that window open while you use the app.
 
-If you would rather type it yourself, the two files do exactly this:
+### Which shop the app talks to
+
+An app with no shop behind it can only show a connection error, so before it
+starts, `START-APP` looks for a shop running on this computer — the one
+`START-SHOP` in the folder above starts — and uses that when it finds one. It
+says which one it picked:
+
+```
+Shop:  http://192.168.1.14:3000   (running on this computer)
+```
+
+So the quickest way to see the whole thing working, with no Cloudflare account
+and nothing published yet, is to double-click **`START-SHOP`** first and
+**`START-APP`** second, then scan the code.
+
+Once the shop is published, close the `START-SHOP` window and `START-APP` goes
+back to the published address in `app.json`.
+
+If you would rather type it yourself:
 
 ```bash
 npm install

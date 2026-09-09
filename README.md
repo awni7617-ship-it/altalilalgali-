@@ -19,7 +19,25 @@ Cloudflare account.
 ## ١. جرّبيه على جهازك · Try it on your computer first
 
 You need **Node.js** installed once ([nodejs.org](https://nodejs.org), the green LTS
-button). Then, in this folder:
+button). Then **double-click** the file in this folder:
+
+- **`START-SHOP.command`** on a Mac
+- **`START-SHOP.bat`** on Windows
+
+*(On a Mac the first time, if it says the file can't be opened — right-click it,
+choose **Open**, then **Open** again.)*
+
+The first run asks you to choose the owner password, then downloads what it needs
+and starts the shop. Open **http://localhost:3000** and sign in with
+**`carsyardltd@icloud.com`** and that password. Nothing here touches the internet;
+it is all running on your own machine.
+
+The window also prints an address like `http://192.168.1.14:3000`. That is the shop
+as your **phone** sees it, on the same WiFi — the phone app finds it by itself.
+
+Press `Ctrl+C` in that window to stop.
+
+### If you would rather type it
 
 ```bash
 npm install         # downloads the Cloudflare tool
@@ -27,20 +45,12 @@ npm run db:local    # builds a test database on your computer
 npm run dev         # starts the shop
 ```
 
-Open **http://localhost:3000**.
-
-Sign in with **`carsyardltd@icloud.com`** and the password in your `.dev.vars` file
-(create it first — see below). Nothing here touches the internet; it is all running on
-your own machine.
-
-Create a file called **`.dev.vars`** next to this README:
+Then create a file called **`.dev.vars`** next to this README:
 
 ```ini
 ADMIN_PASSWORD=choose-something-here
 SECRET_KEY=any-long-random-text-for-testing
 ```
-
-Press `Ctrl+C` in the terminal to stop.
 
 ---
 
