@@ -30,6 +30,7 @@ const STRINGS = {
 
     /* errors from the shop connection */
     err_network: 'تعذّر الاتصال بالمتجر. تحقّقي من الإنترنت.',
+    err_network_at: 'تعذّر الوصول إلى المتجر على:\n{url}\n\nتأكّدي أنّ المتجر يعمل وأنّ الهاتف على نفس شبكة الواي فاي.',
     err_generic: 'حدث خطأ. حاولي مرة أخرى.',
 
     /* sign in */
@@ -200,6 +201,7 @@ const STRINGS = {
     language: 'Language',
 
     err_network: 'Could not reach the shop. Check your connection.',
+    err_network_at: 'Could not reach the shop at:\n{url}\n\nCheck that the shop is running and that the phone is on the same WiFi.',
     err_generic: 'Something went wrong. Please try again.',
 
     sign_in: 'Sign in',

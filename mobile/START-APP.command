@@ -62,7 +62,7 @@ if [ -f ../.shop-starting ]; then
   if [ -n "$LANIP" ]; then
     printf "  Waiting for the shop on this computer"
     for _ in $(seq 1 20); do
-      curl -sS -o /dev/null -m 2 "http://$LANIP:3000/login" 2>/dev/null && break
+      curl -fsS -o /dev/null -m 2 "http://$LANIP:3000/login" 2>/dev/null && break
       printf "."
       sleep 2
     done
@@ -71,12 +71,32 @@ if [ -f ../.shop-starting ]; then
 fi
 
 if [ -z "$EXPO_PUBLIC_API_URL" ] && [ -n "$LANIP" ] &&
-   curl -sS -o /dev/null -m 2 "http://$LANIP:3000/login" 2>/dev/null; then
+   curl -fsS -o /dev/null -m 2 "http://$LANIP:3000/login" 2>/dev/null; then
   export EXPO_PUBLIC_API_URL="http://$LANIP:3000"
   echo "  Shop:  http://$LANIP:3000   (running on this computer)"
 else
-  echo "  Shop:  the published one in app.json"
-  echo "         (start START-SHOP first to use the one on this computer)"
+  PUBLISHED=$(node scripts/shop-url.mjs 2>/dev/null)
+  echo "  Shop:  $PUBLISHED   (the published one in app.json)"
+
+  # Nothing on this computer, so everything rests on that address being
+  # live. If it is not, the app opens perfectly and then fails at the
+  # password — which is far too late to learn it.
+  if [ -n "$PUBLISHED" ] &&
+     ! curl -fsS -o /dev/null -m 8 "$PUBLISHED/login" 2>/dev/null; then
+    echo ""
+    echo "  ============================================="
+    echo "   NOTHING IS ANSWERING AT THAT ADDRESS."
+    echo ""
+    echo "   No shop is running on this computer either, so"
+    echo "   the app will open but signing in will fail with"
+    echo "   \"could not reach the shop\"."
+    echo ""
+    echo "   Close this window and double-click START-SHOP"
+    echo "   in the folder above instead. It starts both."
+    echo "  ============================================="
+    echo ""
+    read -r -p "  Press Enter to carry on anyway, or close this window."
+  fi
 fi
 
 # An access token saved by LOG-IN-TO-EXPO, for an Expo account made with

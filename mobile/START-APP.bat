@@ -60,7 +60,7 @@ if not defined LANIP goto noWait
 echo   Waiting for the shop on this computer...
 set /a SHOPTRIES=0
 :waitForShop
-curl -sS -o nul -m 2 "http://%LANIP%:3000/login" >nul 2>nul
+curl -fsS -o nul -m 2 "http://%LANIP%:3000/login" >nul 2>nul
 if not errorlevel 1 goto noWait
 set /a SHOPTRIES+=1
 if %SHOPTRIES% GEQ 20 goto noWait
@@ -73,14 +73,35 @@ REM shop - otherwise there is nothing to sign in to until it is on
 REM Cloudflare.
 if defined EXPO_PUBLIC_API_URL goto haveShop
 if not defined LANIP goto noLocalShop
-curl -sS -o nul -m 2 "http://%LANIP%:3000/login" >nul 2>nul
+curl -fsS -o nul -m 2 "http://%LANIP%:3000/login" >nul 2>nul
 if errorlevel 1 goto noLocalShop
 set "EXPO_PUBLIC_API_URL=http://%LANIP%:3000"
 echo   Shop:  http://%LANIP%:3000   ^(running on this computer^)
 goto haveShop
 :noLocalShop
-echo   Shop:  the published one in app.json
-echo          ^(start START-SHOP first to use the one on this computer^)
+set "PUBLISHED="
+for /f "usebackq tokens=*" %%a in (`node scripts\shop-url.mjs 2^>nul`) do set "PUBLISHED=%%a"
+echo   Shop:  %PUBLISHED%   ^(the published one in app.json^)
+if not defined PUBLISHED goto haveShop
+
+REM Nothing on this computer, so everything rests on that address being
+REM live. If it is not, the app opens perfectly and then fails at the
+REM password - which is far too late to learn it.
+curl -fsS -o nul -m 8 "%PUBLISHED%/login" >nul 2>nul
+if not errorlevel 1 goto haveShop
+echo.
+echo   =============================================
+echo    NOTHING IS ANSWERING AT THAT ADDRESS.
+echo.
+echo    No shop is running on this computer either, so
+echo    the app will open but signing in will fail with
+echo    "could not reach the shop".
+echo.
+echo    Close this window and double-click START-SHOP
+echo    in the folder above instead. It starts both.
+echo   =============================================
+echo.
+pause
 :haveShop
 
 REM An access token saved by LOG-IN-TO-EXPO, for an Expo account made with

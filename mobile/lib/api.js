@@ -70,7 +70,11 @@ async function request(method, path, body) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(tr('err_network'), 0, 'network');
+    /* Which address failed is the whole diagnosis: a LAN address means
+     * the shop on the computer is not answering, and the published one
+     * means the app never found a shop to talk to. Saying only "check
+     * your connection" hides the one fact that settles it. */
+    throw new ApiError(tr('err_network_at', { url: API_URL }), 0, 'network');
   }
 
   let data = {};
