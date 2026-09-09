@@ -38,6 +38,22 @@ if [ -z "$LANIP" ]; then
   [ -n "$DEFAULT_IFACE" ] && LANIP=$(ipconfig getifaddr "$DEFAULT_IFACE" 2>/dev/null)
 fi
 
+# A second copy of the app server only makes a dead window: it finds the
+# port busy and, with the key menu off, has no way to ask about using
+# another one. Running this again should simply hand the QR code back.
+if curl -sS -m 2 http://127.0.0.1:8081/status 2>/dev/null | grep -q 'packager-status:running'; then
+  rm -f ../.shop-starting
+  echo "  The app is already running in another window."
+  if [ -n "$LANIP" ]; then
+    echo "  Here is its QR code again."
+    echo ""
+    node scripts/show-qr.mjs "exp://$LANIP:8081"
+  fi
+  echo ""
+  read -r -p "  Press Enter to close this window."
+  exit 0
+fi
+
 # START-SHOP leaves this behind when it opens this window itself, which
 # means the shop is still warming up and is worth waiting for. Removing
 # it first keeps a stale one from costing the next run the same wait.
@@ -69,6 +85,15 @@ if [ -n "$LANIP" ]; then
   node scripts/show-qr.mjs "exp://$LANIP:8081"
   echo ""
   echo "  Scan it from that browser page with the iPhone Camera."
+
+  # Expo's menu of keys to press is for launching on a simulator or a
+  # phone plugged into this computer. Pressing one asks for things that
+  # are not needed here — Expo Go on the machine, a development build,
+  # an account — so with the QR code already in the browser there is
+  # nothing in that menu worth the confusion it causes. CI turns it off.
+  # The cost is Metro's watch mode, which only matters when editing the
+  # app's code: delete this line to get live reloading back.
+  export CI=1
 else
   echo "  Your WiFi address could not be worked out, so look for the"
   echo "  line below that starts with exp:// and type it into Expo Go"
@@ -78,7 +103,8 @@ fi
 echo ""
 echo "  ---------------------------------------------"
 echo "   Phone and computer must be on the same WiFi."
-echo "   Ctrl+C stops it. This window must stay open."
+echo "   Nothing to press in here — the QR code is in"
+echo "   your browser. Leave this open; Ctrl+C stops it."
 echo "  ---------------------------------------------"
 echo ""
 

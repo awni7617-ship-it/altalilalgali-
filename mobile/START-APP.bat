@@ -34,6 +34,23 @@ REM localhost, which to a phone means the phone.
 set "LANIP="
 for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "(Get-NetIPConfiguration ^| Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } ^| Select-Object -First 1).IPv4Address.IPAddress" 2^>nul`) do set "LANIP=%%a"
 
+REM A second copy of the app server only makes a dead window: it finds the
+REM port busy and, with the key menu off, has no way to ask about using
+REM another one. Running this again should simply hand the QR code back.
+curl -sS -m 2 "http://127.0.0.1:8081/status" 2>nul | findstr /c:"packager-status:running" >nul
+if errorlevel 1 goto notRunningYet
+del ..\.shop-starting >nul 2>nul
+echo   The app is already running in another window.
+if not defined LANIP goto alreadyRunningNoQr
+echo   Here is its QR code again.
+echo.
+node scripts\show-qr.mjs "exp://%LANIP%:8081"
+:alreadyRunningNoQr
+echo.
+pause
+exit /b 0
+:notRunningYet
+
 REM START-SHOP leaves this behind when it opens this window itself, which
 REM means the shop is still warming up and is worth waiting for. Removing
 REM it first keeps a stale one from costing the next run the same wait.
@@ -72,6 +89,14 @@ echo   Opening the QR code in your browser...
 node scripts\show-qr.mjs "exp://%LANIP%:8081"
 echo.
 echo   Scan it from that browser page with the iPhone Camera.
+REM Expo's menu of keys to press is for launching on a simulator or a
+REM phone plugged into this computer. Pressing one asks for things that
+REM are not needed here - Expo Go on the machine, a development build,
+REM an account - so with the QR code already in the browser there is
+REM nothing in that menu worth the confusion it causes. CI turns it off.
+REM The cost is Metro's watch mode, which only matters when editing the
+REM app's code: delete this line to get live reloading back.
+set "CI=1"
 goto qrDone
 :noQrPage
 echo   Your WiFi address could not be worked out, so look for the
@@ -82,7 +107,8 @@ echo   under "Enter URL manually".
 echo.
 echo   ---------------------------------------------
 echo    Phone and computer must be on the same WiFi.
-echo    Ctrl+C stops it. This window must stay open.
+echo    Nothing to press in here - the QR code is in
+echo    your browser. Leave this open; Ctrl+C stops it.
 echo   ---------------------------------------------
 echo.
 

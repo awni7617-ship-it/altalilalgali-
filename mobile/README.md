@@ -38,6 +38,20 @@ phone; edit a file and it reloads instantly.
 Nothing in the folder shows the QR code on its own — it only appears once one
 of those two files is running. Leave that window open while you use the app.
 
+### There is nothing to press in the black window
+
+Expo normally offers a menu of keys there — `a` for Android, `i` for a simulator,
+`s` for a development build. All of them try to launch on the computer itself, and
+they answer with things you do not need: install Expo Go on the PC, build a
+development client, log in to an Expo account. With the QR code in the browser,
+that menu has nothing to offer, so `START-APP` turns it off (`CI=1`).
+
+The cost is Metro's watch mode, so a code change no longer reloads the phone by
+itself. Delete the `CI` line in `START-APP` to get live reloading back.
+
+Running `START-APP` a second time will not start a second server — it notices the
+first and just shows you the QR code again.
+
 ### Which shop the app talks to
 
 An app with no shop behind it can only show a connection error, so before it
