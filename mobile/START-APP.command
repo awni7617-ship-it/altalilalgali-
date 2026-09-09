@@ -79,6 +79,19 @@ else
   echo "         (start START-SHOP first to use the one on this computer)"
 fi
 
+# A phone signed in to Expo Go will not open a dev server whose computer
+# is signed out — it refuses with "not signed in to Expo CLI". Saying so
+# here beats letting the phone be the one to break the news.
+echo ""
+if EXPO_USER=$(node scripts/expo-session.mjs 2>/dev/null); then
+  echo "  Expo:  signed in as $EXPO_USER"
+else
+  echo "  Expo:  this computer is not signed in (usually fine)."
+  echo "         If the phone says \"not signed in to Expo CLI\","
+  echo "         double-click LOG-IN-TO-EXPO in this folder, or sign"
+  echo "         out of Expo Go on the phone."
+fi
+
 echo ""
 if [ -n "$LANIP" ]; then
   echo "  Opening the QR code in your browser…"

@@ -83,6 +83,22 @@ echo   Shop:  the published one in app.json
 echo          ^(start START-SHOP first to use the one on this computer^)
 :haveShop
 
+REM A phone signed in to Expo Go will not open a dev server whose computer
+REM is signed out - it refuses with "not signed in to Expo CLI". Saying so
+REM here beats letting the phone be the one to break the news.
+echo.
+set "EXPOUSER="
+for /f "usebackq tokens=*" %%a in (`node scripts\expo-session.mjs 2^>nul`) do set "EXPOUSER=%%a"
+if not defined EXPOUSER goto expoSignedOut
+echo   Expo:  signed in as %EXPOUSER%
+goto expoChecked
+:expoSignedOut
+echo   Expo:  this computer is not signed in ^(usually fine^).
+echo          If the phone says "not signed in to Expo CLI",
+echo          double-click LOG-IN-TO-EXPO in this folder, or sign
+echo          out of Expo Go on the phone.
+:expoChecked
+
 echo.
 if not defined LANIP goto noQrPage
 echo   Opening the QR code in your browser...

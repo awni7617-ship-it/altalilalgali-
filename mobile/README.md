@@ -38,6 +38,22 @@ phone; edit a file and it reloads instantly.
 Nothing in the folder shows the QR code on its own — it only appears once one
 of those two files is running. Leave that window open while you use the app.
 
+### "You're signed in to Expo Go, but not signed in to Expo CLI"
+
+An Expo account is not needed to test — **unless you are signed in to Expo Go on
+the phone.** A signed-in Expo Go will only open a dev server whose computer is
+signed in to the same account, and refuses with that message otherwise. Either
+side of the mismatch can be fixed:
+
+- **Sign the computer in** — double-click **`LOG-IN-TO-EXPO`** in this folder and
+  use the same account as the phone. You will want the account eventually anyway;
+  `eas build` requires one.
+- **Or sign the phone out** — in Expo Go, open the account tab and log out. A
+  signed-out Expo Go opens any dev server it is pointed at.
+
+`START-APP` prints which way round this computer is before it starts, so the
+phone is not the first to tell you.
+
 ### There is nothing to press in the black window
 
 Expo normally offers a menu of keys there — `a` for Android, `i` for a simulator,
